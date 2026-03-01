@@ -5,12 +5,37 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useLocationsStore } from '@/features/public/hooks/useLocationsStore'
 import { useAuthStore } from '@/features/auth/hooks/useAuthStore'
+import { useTheme } from '@/hooks/useTheme'
 
 // Shared AI Logic Hook
 export const useGastroAI = () => {
     const { user, addToChatHistory } = useAuthStore()
     const [messages, setMessages] = useState([
-        { id: 1, role: 'ai', content: `Hi ${user?.name || 'there'}! I'm GastroGuide. Ask me anything about dining in Krakow.` }
+        { id: 1, role: 'ai', content: `Hi ${user?.name || 'there'}! I'm GastroGuide. Ask me anything about dining in Krakow.` },
+        { id: 2, role: 'user', content: "I'm looking for a cozy Italian place for a date tonight. Any ideas?" },
+        {
+            id: 3,
+            role: 'ai',
+            content: "Italian and cozy? Great choice! For a date in Krakow, I highly recommend these spots. They have amazing pasta and very intimate lighting.",
+            attachments: [
+                { id: 'loc1', title: 'Ti Amo Bella', category: 'Italian', rating: 4.8, image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=300&q=80', tags: ['Date', 'Pasta'] },
+                { id: 'loc2', title: 'Mamma Mia', category: 'Italian', rating: 4.6, image: 'https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?auto=format&fit=crop&w=300&q=80', tags: ['Family', 'Authentic'] }
+            ]
+        },
+        { id: 4, role: 'user', content: "Ti Amo Bella looks perfect! Do they have outdoor seating?" },
+        { id: 5, role: 'ai', content: "Yes! They have a beautiful hidden garden in the back. It's one of the quietest courtyards in the Old Town. Would you like me to check their menu or book a table?" },
+        { id: 6, role: 'user', content: "Actually, let's look for something else. Maybe a specialty coffee shop for tomorrow morning?" },
+        {
+            id: 7,
+            role: 'ai',
+            content: "Coffee is my specialty! Krakow has a world-class specialty coffee scene. Here are the top-rated cafes near the center where you can find excellent V60 or a perfect flat white:",
+            attachments: [
+                { id: 'loc3', title: 'Karma Coffee', category: 'Cafe', rating: 4.9, image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=300&q=80', tags: ['Specialty', 'Roastery'] },
+                { id: 'loc4', title: 'Wesola Cafe', category: 'Cafe', rating: 4.7, image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=300&q=80', tags: ['Breakfast', 'Vibe'] }
+            ]
+        },
+        { id: 8, role: 'user', content: "Wesola looks very vibrant. Is it good for working on a laptop?" },
+        { id: 9, role: 'ai', content: "Wesola is very popular, so it can get loud! If you want to work, I'd suggest Karma or Blossom. They have more 'work-friendly' zones and reliable Wi-Fi." }
     ])
     const [isTyping, setIsTyping] = useState(false)
     const { locations } = useLocationsStore()
@@ -138,6 +163,8 @@ export const useGastroAI = () => {
 
 // Unified Chat Interface Component
 export function ChatInterface({ messages, isTyping, onSendMessage, transparent = false, hideInput = false, className = "", contentClassName = "" }) {
+    const { theme } = useTheme()
+    const isDark = theme === 'dark'
     const [input, setInput] = useState('')
     const scrollRef = useRef(null)
 
@@ -155,9 +182,20 @@ export function ChatInterface({ messages, isTyping, onSendMessage, transparent =
     }
 
     return (
-        <div className={`flex flex-col h-full ${className}`}>
+        <div className={`flex flex-col h-full relative ${className}`}>
+            {/* Top Mask - Fixed Gradient Overlay */}
+            {transparent && (
+                <div
+                    className="absolute top-0 left-0 right-0 h-40 z-20 pointer-events-none"
+                    style={{
+                        background: `linear-gradient(to bottom, ${isDark ? '#000' : '#fff'} 0%, ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)'} 40%, transparent 100%)`
+                    }}
+                />
+            )}
+
             {/* Chat Area */}
             <div className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-4 relative ${transparent ? 'pb-32' : ''} ${contentClassName}`} ref={scrollRef}>
+
                 {/* Background Glow when thinking (Aurora effect inside the scroll area) */}
                 {isTyping && transparent && (
                     <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-purple-400/30 via-pink-300/10 to-transparent blur-3xl animate-pulse pointer-events-none z-0" />
