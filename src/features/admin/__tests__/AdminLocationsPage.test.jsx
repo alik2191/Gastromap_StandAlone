@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { renderWithRouter } from '@/test/helpers'
 import AdminLocationsPage from '../pages/AdminLocationsPage'
 
 describe('AdminLocationsPage', () => {
     it('renders locations page with stats', () => {
-        render(<AdminLocationsPage />)
+        renderWithRouter(<AdminLocationsPage />)
 
         expect(screen.getByText(/Локации/i)).toBeInTheDocument()
         expect(screen.getByText(/Всего/i)).toBeInTheDocument()
@@ -12,7 +13,7 @@ describe('AdminLocationsPage', () => {
     })
 
     it('displays table header', () => {
-        render(<AdminLocationsPage />)
+        renderWithRouter(<AdminLocationsPage />)
         // 'Объект' is in the header th and description.
         expect(screen.getAllByText(/Объект/i).length).toBeGreaterThan(0)
         expect(screen.getByText(/Рейтинг/i)).toBeInTheDocument()
@@ -20,7 +21,7 @@ describe('AdminLocationsPage', () => {
     })
 
     it('can switch tabs', () => {
-        render(<AdminLocationsPage />)
+        renderWithRouter(<AdminLocationsPage />)
 
         const moderationTab = screen.getByRole('button', { name: /В очереди/i })
         fireEvent.click(moderationTab)
@@ -31,7 +32,7 @@ describe('AdminLocationsPage', () => {
     })
 
     it('opens and closes slide-over panel', async () => {
-        render(<AdminLocationsPage />)
+        renderWithRouter(<AdminLocationsPage />)
 
         // Click on a location row
         const locationRow = screen.getByText(/Zen Garden/i)

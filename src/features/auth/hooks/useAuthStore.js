@@ -1,110 +1,77 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { signIn, signUp, signOut, updateProfile } from '@/shared/api/auth.api'
 
-// Default preferences for new users
-const DEFAULT_PREFERENCES = {
-    longTerm: {
-        atmospherePreference: '',
-        priceRange: ['$', '$$'],
-        features: '',
-        foodieDNA: ''
-    },
-    shortTerm: {}
-}
-
-const DEFAULT_AI_HISTORY = {
-    chatHistory: [],
-    lastVisited: [],
-    frequentSearches: []
-}
-
+/**
+ * useAuthStore — session & identity only.
+ *
+ * Stores: user identity, auth state, token.
+ * Does NOT store: preferences, AI chat history (moved to dedicated stores).
+ *
+ * @see useUserPrefsStore  src/features/auth/hooks/useUserPrefsStore.js
+ * @see useAIChatStore     src/features/shared/hooks/useAIChatStore.js
+ */
 export const useAuthStore = create(
     persist(
-        (set) => ({
-            user: null, // null | { id, name, email, role, avatar, preferences, aiHistory }
+        (set, get) => ({
+            user: null,            // { id, name, email, role, avatar, createdAt }
+            token: null,
             isAuthenticated: false,
+            isLoading: false,
+            error: null,
 
-            login: (email, password) => {
-                // Mock login logic
-                if (email === 'admin@gastromap.com') {
-                    set({
-                        user: {
-                            id: 'admin1',
-                            name: 'Admin User',
-                            email,
-                            role: 'admin',
-                            avatar: null,
-                            preferences: DEFAULT_PREFERENCES,
-                            aiHistory: DEFAULT_AI_HISTORY
-                        },
-                        isAuthenticated: true
-                    })
-                    return true
-                } else if (email) {
-                    // Extract name from email (before @) or use default
-                    const nameFromEmail = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            // ─── Actions ─────────────────────────────────────────────────
 
-                    set({
-                        user: {
-                            id: 'user1',
-                            name: nameFromEmail || 'Guest',
-                            email,
-                            role: 'user',
-                            avatar: null,
-                            preferences: {
-                                longTerm: {
-                                    favoriteCuisines: ['Israeli', 'Modern Polish', 'Coffee'],
-                                    atmospherePreference: ['cozy', 'modern', 'quiet'],
-                                    priceRange: ['$', '$$'],
-                                    features: ['wifi', 'pet-friendly']
-                                },
-                                shortTerm: {}
-                            },
-                            aiHistory: DEFAULT_AI_HISTORY
-                        },
-                        isAuthenticated: true
-                    })
+            login: async (email, password) => {
+                set({ isLoading: true, error: null })
+                try {
+                    const { user, token } = await signIn(email, password)
+                    set({ user, token, isAuthenticated: true, isLoading: false })
                     return true
+                } catch (err) {
+                    set({ error: err.message, isLoading: false })
+                    return false
                 }
-                return false
             },
 
-            logout: () => {
-                set({ user: null, isAuthenticated: false })
+            register: async (email, password, name) => {
+                set({ isLoading: true, error: null })
+                try {
+                    const { user, token } = await signUp(email, password, name)
+                    set({ user, token, isAuthenticated: true, isLoading: false })
+                    return true
+                } catch (err) {
+                    set({ error: err.message, isLoading: false })
+                    return false
+                }
             },
 
-            updateProfile: (updates) => {
-                set((state) => ({
-                    user: { ...state.user, ...updates }
-                }))
+            logout: async () => {
+                await signOut()
+                set({ user: null, token: null, isAuthenticated: false, error: null })
             },
 
-            updatePreferences: (preferences) => {
-                set((state) => ({
-                    user: {
-                        ...state.user,
-                        preferences: {
-                            ...state.user.preferences,
-                            ...preferences
-                        }
-                    }
-                }))
+            updateUserProfile: async (updates) => {
+                const { user } = get()
+                if (!user) return
+                try {
+                    const updated = await updateProfile(user.id, updates)
+                    set({ user: { ...user, ...updated } })
+                } catch (err) {
+                    set({ error: err.message })
+                }
             },
 
-            addToChatHistory: (message) => {
-                set((state) => ({
-                    user: {
-                        ...state.user,
-                        aiHistory: {
-                            ...state.user.aiHistory,
-                            chatHistory: [...(state.user.aiHistory?.chatHistory || []), message]
-                        }
-                    }
-                }))
-            }
+            clearError: () => set({ error: null }),
         }),
         {
-            name: 'auth-storage'
+            name: 'auth-storage',
+            // Only persist identity — not transient loading/error states
+            partialize: (state) => ({
+                user: state.user,
+                token: state.token,
+                isAuthenticated: state.isAuthenticated,
+            }),
         }
     )
 )

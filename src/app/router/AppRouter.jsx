@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/MainLayout'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { MaintenanceGuard } from '@/components/guards/MaintenanceGuard'
+import { ErrorBoundary, MapErrorFallback, AIChatErrorFallback } from '@/app/ErrorBoundary'
 
 // ─── CRITICAL PUBLIC PAGES (no lazy loading) ───────────────────────────────
 import LandingPage from '@/features/public/pages/LandingPage'
@@ -99,10 +100,24 @@ export const AppRouter = () => {
                     <Route path="/profile/language" element={<LanguageSettingsPage />} />
                     <Route path="/profile/security" element={<SecurityPrivacyPage />} />
                     <Route path="/privacy/delete-request" element={<DeleteDataPage />} />
-                    <Route path="/ai-guide" element={<AIGuidePage />} />
+                    <Route
+                        path="/ai-guide"
+                        element={
+                            <ErrorBoundary fallback={({ error, reset }) => <AIChatErrorFallback reset={reset} />}>
+                                <AIGuidePage />
+                            </ErrorBoundary>
+                        }
+                    />
                     <Route path="/saved" element={<SavedPage />} />
                     <Route path="/visited" element={<VisitedPage />} />
-                    <Route path="/map" element={<div className="p-4">Map View (Coming Soon)</div>} />
+                    <Route
+                        path="/map"
+                        element={
+                            <ErrorBoundary fallback={({ error, reset }) => <MapErrorFallback error={error} reset={reset} />}>
+                                <div className="p-4">Map View (Coming Soon)</div>
+                            </ErrorBoundary>
+                        }
+                    />
                 </Route>
 
                 {/* Admin Routes */}

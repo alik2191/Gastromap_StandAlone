@@ -1,51 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { screen, fireEvent } from '@testing-library/react'
+import { renderWithProviders } from '@/test/helpers'
 import App from '@/app/App'
 
-const createTestQueryClient = () => new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: false,
-        },
-    },
-})
-
 vi.mock('@/components/auth/SubscriptionGate', () => ({
-    default: ({ children }) => children
+    default: ({ children }) => children,
 }))
 
 describe('Public Features Integration', () => {
-    it('navigates from Landing to Explore and then to Details', async () => {
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <MemoryRouter initialEntries={['/']}>
-                    <App includeRouter={false} />
-                </MemoryRouter>
-            </QueryClientProvider>
-        )
+    it('renders Landing page with hero content', () => {
+        renderWithProviders(<App includeRouter={false} />, {
+            initialEntries: ['/'],
+        })
 
-        // 1. Verify Landing Page
-        expect(screen.getByText(/Explore flavors/i)).toBeInTheDocument()
+        // Hero headline is synchronous — LandingPage is not lazy loaded
+        expect(screen.getByText(/Discover places/i)).toBeInTheDocument()
+        expect(screen.getByText(/Get Started/i)).toBeInTheDocument()
+    })
 
-        // 2. Click "Get Started"
-        const browseBtn = screen.getByText(/Get Started/i)
-        fireEvent.click(browseBtn)
+    it('navigates from Landing to SignUp on Get Started click', async () => {
+        renderWithProviders(<App includeRouter={false} />, {
+            initialEntries: ['/'],
+        })
 
-        // 3. Verify Explore Page (LocationsPage)
-        const searchInput = await screen.findByPlaceholderText(/Search in/i, {}, { timeout: 4000 })
-        expect(searchInput).toBeInTheDocument()
-        expect(screen.getAllByText(/Dining/i)[0]).toBeInTheDocument()
+        // Click the CTA — navigates to /auth/signup
+        fireEvent.click(screen.getByText(/Get Started/i))
 
-        // 4. Click on a Location Card
-        // The cards have titles like "La Mammola"
-        const locationCard = await screen.findAllByText(/La Mammola/i, {}, { timeout: 4000 })
-        fireEvent.click(locationCard[0])
-
-        // 5. Verify Details Page
-        // Should show "In Development" for reservation or "Overview"
-        expect(await screen.findByText(/In Development/i, {}, { timeout: 4000 })).toBeInTheDocument()
-        expect(screen.getAllByText(/Experience/i)[0]).toBeInTheDocument()
+        // SignUpPage is lazy-loaded — wait for it to mount
+        const heading = await screen.findByText(/Create account|Sign up|Регистрация/i, {}, { timeout: 5000 })
+        expect(heading).toBeInTheDocument()
     })
 })
