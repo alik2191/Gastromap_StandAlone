@@ -24,8 +24,22 @@ import { gastroIntelligence } from '@/services/gastroIntelligence'
 import { config } from '@/shared/config/env'
 import { ApiError } from './client'
 import { useLocationsStore } from '@/features/public/hooks/useLocationsStore'
+import { useAppConfigStore } from '@/store/useAppConfigStore'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+
+/**
+ * Get active AI config — admin store overrides env vars at runtime.
+ * Admin can change model/key in AdminAIPage without redeploying.
+ */
+function getActiveAIConfig() {
+    const appCfg = useAppConfigStore.getState()
+    return {
+        apiKey:        appCfg.aiApiKey        || config.ai.openRouterKey,
+        model:         appCfg.aiPrimaryModel  || config.ai.model,
+        fallbackModel: appCfg.aiFallbackModel || config.ai.modelFallback,
+    }
+}
 
 // ─── Tool definitions (OpenAI function calling format) ────────────────────
 
@@ -304,8 +318,8 @@ When recommending places, format your response naturally — mention the name, w
  * @returns {Promise<Response>}
  */
 async function fetchOpenRouter(messages, { stream = false, withTools = true, modelOverride } = {}) {
-    const apiKey = config.ai.openRouterKey
-    const model = modelOverride ?? config.ai.model
+    const { apiKey, model: activeModel, fallbackModel } = getActiveAIConfig()
+    const model = modelOverride ?? activeModel
 
     const body = {
         model,
@@ -331,7 +345,7 @@ async function fetchOpenRouter(messages, { stream = false, withTools = true, mod
 
     // On rate limit, retry with fallback model (only once)
     if (res.status === 429 && !modelOverride) {
-        return fetchOpenRouter(messages, { stream, withTools, modelOverride: config.ai.modelFallback })
+        return fetchOpenRouter(messages, { stream, withTools, modelOverride: fallbackModel })
     }
 
     if (!res.ok) {
@@ -457,7 +471,7 @@ export async function analyzeQuery(message, context = {}) {
 
     const intent = detectIntent(message)
 
-    if (config.ai.openRouterKey) {
+    if (getActiveAIConfig().apiKey) {
         try {
             const historyMessages = (context.history ?? [])
                 .slice(-8)
@@ -498,7 +512,7 @@ export async function analyzeQueryStream(message, context = {}, onChunk) {
 
     const intent = detectIntent(message)
 
-    if (config.ai.openRouterKey) {
+    if (getActiveAIConfig().apiKey) {
         try {
             const historyMessages = (context.history ?? [])
                 .slice(-8)
