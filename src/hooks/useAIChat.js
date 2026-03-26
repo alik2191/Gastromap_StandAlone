@@ -5,12 +5,13 @@ import { analyzeQueryStream, analyzeQuery } from '@/shared/api/ai.api'
 import { config } from '@/shared/config/env'
 
 /**
- * useAIChat — GastroGuide conversation logic with Claude API streaming.
+ * useAIChat — GastroGuide conversation logic with OpenRouter API streaming.
  *
- * When VITE_AI_API_KEY is set:
+ * When VITE_OPENROUTER_API_KEY is set:
  *   • Uses analyzeQueryStream for real-time token delivery
  *   • Updates the last assistant message in-place as chunks arrive
  *   • Passes last 8 messages as multi-turn history context
+ *   • Supports 300+ models via OpenRouter (default: DeepSeek V3.2 Free)
  *
  * When no API key:
  *   • Falls back to local gastroIntelligence scoring engine (zero API cost)
@@ -58,8 +59,8 @@ export function useAIChat() {
         const context = { preferences: prefs, history }
 
         try {
-            if (config.ai.apiKey) {
-                // ── Streaming path (Claude API) ──────────────────────────────
+            // ── Streaming path (OpenRouter API) ──────────────────────────────
+            if (config.ai.openRouter.apiKey || config.ai.apiKey) {
                 // Add an empty assistant message that will fill with streamed chunks
                 addMessage('assistant', '…')
                 let accumulated = ''
@@ -98,7 +99,7 @@ export function useAIChat() {
         messages,
         isTyping,
         error,
-        isStreaming: isTyping && Boolean(config.ai.apiKey),
+        isStreaming: isTyping && Boolean(config.ai.openRouter.apiKey || config.ai.apiKey),
         sendMessage,
         clearHistory,
     }
