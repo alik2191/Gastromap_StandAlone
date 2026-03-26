@@ -17,6 +17,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useOpenStatus } from '@/hooks/useOpenStatus'
 import LazyImage from '@/components/ui/LazyImage'
 import { LocationCardMobileSkeleton, LocationCardDesktopSkeleton } from '@/components/ui/Skeleton'
+import { useLocationsQuery } from '@/hooks/useLocationsQuery'
 
 // ─── Category config ──────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -240,11 +241,8 @@ const LocationsPage = () => {
         return () => resetFilters()
     }, [])
 
-    const [isLoading, setIsLoading] = useState(true)
-    useEffect(() => {
-        const t = setTimeout(() => setIsLoading(false), 600)
-        return () => clearTimeout(t)
-    }, [city])
+    // Fetch real venue data from OpenStreetMap; syncs to Zustand store automatically
+    const { isPending: isLoading, isError } = useLocationsQuery(city, country)
 
     const scrollContainerRef = useRef(null)
     const virtualizer = useVirtualizer({
