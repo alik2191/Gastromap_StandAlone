@@ -3,11 +3,12 @@ import { useAIChatStore } from '@/features/shared/hooks/useAIChatStore'
 import { useUserPrefsStore } from '@/features/auth/hooks/useUserPrefsStore'
 import { analyzeQueryStream, analyzeQuery } from '@/shared/api/ai.api'
 import { config } from '@/shared/config/env'
+import { useAppConfigStore } from '@/store/useAppConfigStore'
 
 /**
  * useAIChat — GastroGuide conversation logic with OpenRouter API streaming.
  *
- * When VITE_OPENROUTER_API_KEY is set:
+ * When VITE_OPENROUTER_API_KEY is set (or admin sets a key at runtime):
  *   • Uses analyzeQueryStream for real-time token delivery
  *   • Updates the last assistant message in-place as chunks arrive
  *   • Passes last 8 messages as multi-turn history context
@@ -40,6 +41,12 @@ export function useAIChat() {
     } = useAIChatStore()
 
     const { prefs } = useUserPrefsStore()
+    const { aiApiKey: adminApiKey } = useAppConfigStore()
+
+    // Use admin runtime key (set via AdminAIPage) or fall back to env var.
+    // Mirrors the logic in ai.api.js getActiveAIConfig() so streaming path
+    // is taken whenever the API call itself would actually work.
+    const activeApiKey = adminApiKey || config.ai.openRouterKey
 
     const sendMessage = useCallback(async (text) => {
         if (!text?.trim() || isTyping) return
@@ -60,7 +67,7 @@ export function useAIChat() {
 
         try {
             // ── Streaming path (OpenRouter API) ──────────────────────────────
-            if (config.ai.openRouter.apiKey || config.ai.apiKey) {
+            if (activeApiKey) {
                 // Add an empty assistant message that will fill with streamed chunks
                 addMessage('assistant', '…')
                 let accumulated = ''
@@ -93,13 +100,13 @@ export function useAIChat() {
         } finally {
             setTyping(false)
         }
-    }, [isTyping, prefs, messages, addMessage, updateLastMessage, setTyping, setError, clearError, trimHistory])
+    }, [isTyping, prefs, messages, activeApiKey, addMessage, updateLastMessage, setTyping, setError, clearError, trimHistory])
 
     return {
         messages,
         isTyping,
         error,
-        isStreaming: isTyping && Boolean(config.ai.openRouter.apiKey || config.ai.apiKey),
+        isStreaming: isTyping && Boolean(activeApiKey),
         sendMessage,
         clearHistory,
     }
