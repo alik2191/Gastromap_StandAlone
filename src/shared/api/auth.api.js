@@ -8,12 +8,23 @@
 
 import { ApiError, simulateDelay } from './client'
 
+// ─── Admin emails ──────────────────────────────────────────────────────────
+const ADMIN_EMAILS = ['admin@gastromap.com', 'alik2191@gmail.com']
+
 // ─── Mock user store (in-memory for dev) ──────────────────────────────────
 const MOCK_USERS = [
     {
         id: 'admin1',
         name: 'Admin User',
         email: 'admin@gastromap.com',
+        role: 'admin',
+        avatar: null,
+        createdAt: '2024-01-01T00:00:00Z',
+    },
+    {
+        id: 'admin2',
+        name: 'Alik',
+        email: 'alik2191@gmail.com',
         role: 'admin',
         avatar: null,
         createdAt: '2024-01-01T00:00:00Z',
@@ -35,9 +46,9 @@ export async function signIn(email, password) {
         throw new ApiError('Email is required', 400, 'VALIDATION_ERROR')
     }
 
-    if (email === 'admin@gastromap.com') {
-        const user = MOCK_USERS[0]
-        return { user, token: 'mock-admin-jwt' }
+    const knownAdmin = MOCK_USERS.find(u => u.email === email)
+    if (knownAdmin) {
+        return { user: knownAdmin, token: 'mock-admin-jwt' }
     }
 
     // Generic user — derive name from email
