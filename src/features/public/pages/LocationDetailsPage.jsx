@@ -27,10 +27,11 @@ const LocationDetailsPage = () => {
     const { theme } = useTheme()
     const isDark = theme === 'dark'
 
-    // Find location in store (populated from OSM API or mock fallback)
+    // Find location: store first (OSM data), then mock fallback, then null
     const storeLocations = useLocationsStore(s => s.locations)
-    const allLocations = storeLocations.length ? storeLocations : MOCK_LOCATIONS
-    const location = allLocations.find(loc => loc.id === id) ?? allLocations[0]
+    const location = storeLocations.find(loc => loc.id === id)
+        ?? MOCK_LOCATIONS.find(loc => loc.id === id)
+        ?? null
 
     // Connect to real stores
     const { isFavorite, toggleFavorite } = useFavoritesStore()
@@ -53,7 +54,19 @@ const LocationDetailsPage = () => {
     const [isWritingReview, setIsWritingReview] = useState(false)
     const [newReview, setNewReview] = useState({ rating: 5, text: "" })
 
-    if (!location) return null
+    if (!location) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+            <MapPin size={48} className="text-gray-300" />
+            <h2 className="text-xl font-black text-gray-700 dark:text-gray-200">Location not found</h2>
+            <p className="text-sm text-gray-400">This place may have been removed or the link is incorrect.</p>
+            <button
+                onClick={() => navigate('/explore')}
+                className="mt-2 px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm"
+            >
+                Browse places
+            </button>
+        </div>
+    )
 
     const handleScroll = (e) => {
         const { scrollLeft, scrollWidth, clientWidth } = e.target
