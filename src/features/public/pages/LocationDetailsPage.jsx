@@ -28,9 +28,10 @@ const LocationDetailsPage = () => {
     const isDark = theme === 'dark'
 
     // Find location: store first (OSM data), then mock fallback, then null
+    // Use String() coercion — URL params are always strings, DB ids may be numbers
     const storeLocations = useLocationsStore(s => s.locations)
-    const location = storeLocations.find(loc => loc.id === id)
-        ?? MOCK_LOCATIONS.find(loc => loc.id === id)
+    const location = storeLocations.find(loc => String(loc.id) === id)
+        ?? MOCK_LOCATIONS.find(loc => String(loc.id) === id)
         ?? null
 
     // Connect to real stores
@@ -83,7 +84,11 @@ const LocationDetailsPage = () => {
     }
 
     const callNumber = () => {
-        if (location.phone) window.location.href = `tel:${location.phone}`
+        const phone = location?.phone
+        if (!phone) return
+        // Validate: must start with + or digits only — prevents open redirects via tel:
+        if (!/^\+?[\d\s\-().]{7,20}$/.test(phone)) return
+        window.location.href = `tel:${phone}`
     }
 
     const textStyle = isDark ? "text-white" : "text-gray-900"

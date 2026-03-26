@@ -121,8 +121,8 @@ const DashboardPage = () => {
     const isDark = theme === 'dark'
     const [isLoading, setIsLoading] = useState(true)
     useEffect(() => {
-        const t = setTimeout(() => setIsLoading(false), 700)
-        return () => clearTimeout(t)
+        const timer = setTimeout(() => setIsLoading(false), 700)
+        return () => clearTimeout(timer)
     }, [])
 
     const [isFilterOpen, setIsFilterOpen] = useState(false)
