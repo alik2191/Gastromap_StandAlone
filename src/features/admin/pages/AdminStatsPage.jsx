@@ -8,6 +8,14 @@ import {
 import { cn } from '@/lib/utils'
 
 const AdminStatsPage = () => {
+    // Explicit color maps — Tailwind can't scan dynamic template literals like `bg-${color}-500`
+    const colorMap = {
+        indigo:  { glow: 'bg-indigo-500',  icon: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+        purple:  { glow: 'bg-purple-500',  icon: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+        emerald: { glow: 'bg-emerald-500', icon: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+        orange:  { glow: 'bg-orange-500',  icon: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+    }
+
     const mainStats = [
         { label: 'Юзеры', value: '12,842', change: '+12%', isPositive: true, icon: Users, color: 'indigo' },
         { label: 'Объекты', value: '3,456', change: '+5%', isPositive: true, icon: MapPin, color: 'purple' },
@@ -54,19 +62,19 @@ const AdminStatsPage = () => {
                     >
                         <div className={cn(
                             "absolute -top-4 -right-4 w-20 lg:w-32 h-20 lg:h-32 rounded-full blur-[40px] lg:blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity",
-                            `bg-${stat.color}-500`
+                            colorMap[stat.color]?.glow
                         )} />
 
                         <div className="flex justify-between items-start mb-4 lg:mb-6 relative z-10">
                             <div className={cn(
-                                "p-2.5 lg:p-3 rounded-xl lg:rounded-[18px] bg-opacity-10 dark:bg-opacity-20 shadow-inner",
-                                `bg-${stat.color}-500 text-${stat.color}-600 dark:text-${stat.color}-400`
+                                "p-2.5 lg:p-3 rounded-xl lg:rounded-[18px] shadow-inner",
+                                colorMap[stat.color]?.icon
                             )}>
                                 <stat.icon size={20} className="lg:w-6 lg:h-6" />
                             </div>
                             <div className={cn(
                                 "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider",
-                                stat.isPositive ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-red-50 text-red-600'
+                                stat.isPositive ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-red-50 dark:bg-red-500/10 text-red-600'
                             )}>
                                 {stat.isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                                 {stat.change}
@@ -74,7 +82,7 @@ const AdminStatsPage = () => {
                         </div>
 
                         <div className="relative z-10">
-                            <p className="text-[8px] lg:text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-0.5 lg:mb-1">{stat.label}</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-0.5 lg:mb-1">{stat.label}</p>
                             <h3 className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">{stat.value}</h3>
                         </div>
                     </motion.div>
@@ -117,7 +125,7 @@ const AdminStatsPage = () => {
 
                     <h2 className="text-lg lg:text-xl font-bold mb-8 relative z-10 leading-tight pl-1">AI Impact</h2>
                     <div className="space-y-4 lg:space-y-6 relative z-10">
-                        <div className="p-5 p lg:p-6 rounded-[24px] lg:rounded-[32px] bg-white/5 border border-white/5 backdrop-blur-xl group hover:border-white/10 transition-all">
+                        <div className="p-5 lg:p-6 rounded-[24px] lg:rounded-[32px] bg-white/5 border border-white/5 backdrop-blur-xl group hover:border-white/10 transition-all">
                             <div className="flex items-center gap-4 mb-4">
                                 <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><MousePointer2 size={20} /></div>
                                 <div>

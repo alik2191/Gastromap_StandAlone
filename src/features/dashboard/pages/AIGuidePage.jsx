@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import { useGastroAI, ChatInterface } from '@/features/shared/components/GastroAIChat'
 import { AnimatedInputBar } from '@/components/layout/AnimatedInputBar'
 
@@ -44,6 +45,15 @@ const AIGuidePage = () => {
                     />
                 </div>
             )}
+
+            {/* Back button — visible on mobile where BottomNav is hidden on this page */}
+            <button
+                onClick={() => navigate(-1)}
+                className="md:hidden absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/30 backdrop-blur-md text-white text-[13px] font-bold border border-white/10 active:scale-95 transition-transform"
+            >
+                <ArrowLeft size={16} />
+                Back
+            </button>
 
             {/* Chat Interface - Positioned to fill screen under the new Global Header */}
             <div className="absolute inset-0 z-0">

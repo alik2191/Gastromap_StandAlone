@@ -1,15 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { signIn, signUp, signOut, updateProfile } from '@/shared/api/auth.api'
+import { signIn, signUp, signOut, updateProfile, subscribeToAuthChanges } from '@/shared/api/auth.api'
 
 /**
- * useAuthStore — session & identity only.
+ * useAuthStore — session & identity.
  *
  * Stores: user identity, auth state, token.
- * Does NOT store: preferences, AI chat history (moved to dedicated stores).
+ * Persists to localStorage ('auth-storage') — survives page refresh.
  *
- * @see useUserPrefsStore  src/features/auth/hooks/useUserPrefsStore.js
- * @see useAIChatStore     src/features/shared/hooks/useAIChatStore.js
+ * On app mount, call initAuth() once to:
+ *   1. Restore session from Supabase (if configured)
+ *   2. Set up onAuthStateChange listener for token refresh, tab sync, logout
  */
 export const useAuthStore = create(
     persist(
@@ -22,33 +23,64 @@ export const useAuthStore = create(
 
             // ─── Actions ─────────────────────────────────────────────────
 
+            /**
+             * Call once on App mount. Sets up Supabase auth listener
+             * and restores session if it exists.
+             */
+            initAuth: () => {
+                set({ isLoading: true })
+
+                const unsubscribe = subscribeToAuthChanges(
+                    // onSession — called with current + future sessions
+                    ({ user, token }) => {
+                        set({ user, token, isAuthenticated: true, isLoading: false })
+                    },
+                    // onSignOut
+                    () => {
+                        set({ user: null, token: null, isAuthenticated: false, isLoading: false })
+                    }
+                )
+
+                // Store unsubscribe so logout can clean it up (optional)
+                set({ _unsubscribeAuth: unsubscribe, isLoading: false })
+            },
+
             login: async (email, password) => {
                 set({ isLoading: true, error: null })
                 try {
-                    const { user, token } = await signIn(email, password)
-                    set({ user, token, isAuthenticated: true, isLoading: false })
-                    return true
+                    const result = await signIn(email, password)
+                    set({ user: result.user, token: result.token, isAuthenticated: true, isLoading: false })
+                    return { success: true, user: result.user }
                 } catch (err) {
                     set({ error: err.message, isLoading: false })
-                    return false
+                    return { success: false, error: err.message }
                 }
             },
 
             register: async (email, password, name) => {
                 set({ isLoading: true, error: null })
                 try {
-                    const { user, token } = await signUp(email, password, name)
-                    set({ user, token, isAuthenticated: true, isLoading: false })
-                    return true
+                    const result = await signUp(email, password, name)
+
+                    // Email confirmation required (Supabase setting enabled)
+                    if (result.emailConfirmation) {
+                        set({ isLoading: false })
+                        return { success: true, emailConfirmation: true }
+                    }
+
+                    set({ user: result.user, token: result.token, isAuthenticated: true, isLoading: false })
+                    return { success: true, user: result.user }
                 } catch (err) {
                     set({ error: err.message, isLoading: false })
-                    return false
+                    return { success: false, error: err.message }
                 }
             },
 
             logout: async () => {
+                const { _unsubscribeAuth } = get()
+                if (_unsubscribeAuth) _unsubscribeAuth()
                 await signOut()
-                set({ user: null, token: null, isAuthenticated: false, error: null })
+                set({ user: null, token: null, isAuthenticated: false, error: null, _unsubscribeAuth: null })
             },
 
             updateUserProfile: async (updates) => {
@@ -66,7 +98,6 @@ export const useAuthStore = create(
         }),
         {
             name: 'auth-storage',
-            // Only persist identity — not transient loading/error states
             partialize: (state) => ({
                 user: state.user,
                 token: state.token,

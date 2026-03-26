@@ -1,9 +1,24 @@
 import React, { Suspense, lazy } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/MainLayout'
 import PublicLayout from '@/components/layout/PublicLayout'
 import { MaintenanceGuard } from '@/components/guards/MaintenanceGuard'
 import { ErrorBoundary, MapErrorFallback, AIChatErrorFallback, RouteErrorFallback } from '@/app/ErrorBoundary'
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore'
+
+// ─── Auth guards — must be non-lazy so check runs before chunk loads ──────
+const RequireAuth = () => {
+    const { isAuthenticated } = useAuthStore()
+    if (!isAuthenticated) return <Navigate to="/login" replace />
+    return <Outlet />
+}
+
+const RequireAdmin = () => {
+    const { user, isAuthenticated } = useAuthStore()
+    if (!isAuthenticated) return <Navigate to="/login" replace />
+    if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />
+    return <Outlet />
+}
 
 // ─── CRITICAL PUBLIC PAGES (no lazy loading) ───────────────────────────────
 import LandingPage from '@/features/public/pages/LandingPage'
@@ -86,50 +101,49 @@ export const AppRouter = () => {
                     <Route path="/community" element={<PublicPage title="Community" subtitle="Join the conversation." />} />
                 </Route>
 
-                {/* App Routes (With App Shell) wrapped in MaintenanceGuard */}
+                {/* Public App Routes — no auth needed (explore, location details) */}
                 <Route element={<MaintenanceGuard><MainLayout /></MaintenanceGuard>}>
                     <Route path="/explore" element={<ErrorBoundary fallback={({ error, reset }) => <RouteErrorFallback error={error} reset={reset} />}><ExploreWrapper /></ErrorBoundary>} />
                     <Route path="/explore/:country" element={<ErrorBoundary fallback={({ error, reset }) => <RouteErrorFallback error={error} reset={reset} />}><ExploreWrapper /></ErrorBoundary>} />
                     <Route path="/explore/:country/:city" element={<ErrorBoundary fallback={({ error, reset }) => <RouteErrorFallback error={error} reset={reset} />}><ExploreWrapper /></ErrorBoundary>} />
                     <Route path="/location/:id" element={<ErrorBoundary fallback={({ error, reset }) => <RouteErrorFallback error={error} reset={reset} />}><LocationDetailsPage /></ErrorBoundary>} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/dashboard/add-place" element={<AddPlacePage />} />
-                    <Route path="/dashboard/leaderboard" element={<LeaderboardPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/profile/edit" element={<ProfileEditPage />} />
-                    <Route path="/profile/language" element={<LanguageSettingsPage />} />
-                    <Route path="/profile/security" element={<SecurityPrivacyPage />} />
-                    <Route path="/privacy/delete-request" element={<DeleteDataPage />} />
-                    <Route
-                        path="/ai-guide"
-                        element={
-                            <ErrorBoundary fallback={({ error, reset }) => <AIChatErrorFallback reset={reset} />}>
-                                <AIGuidePage />
-                            </ErrorBoundary>
-                        }
-                    />
-                    <Route path="/saved" element={<SavedPage />} />
-                    <Route path="/visited" element={<VisitedPage />} />
-                    <Route
-                        path="/map"
-                        element={
-                            <ErrorBoundary fallback={({ error, reset }) => <MapErrorFallback error={error} reset={reset} />}>
-                                <div className="p-4">Map View (Coming Soon)</div>
-                            </ErrorBoundary>
-                        }
-                    />
+
+                    {/* Private App Routes — requires authentication */}
+                    <Route element={<RequireAuth />}>
+                        <Route path="/dashboard" element={<DashboardPage />} />
+                        <Route path="/dashboard/add-place" element={<AddPlacePage />} />
+                        <Route path="/dashboard/leaderboard" element={<LeaderboardPage />} />
+                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/profile/edit" element={<ProfileEditPage />} />
+                        <Route path="/profile/language" element={<LanguageSettingsPage />} />
+                        <Route path="/profile/security" element={<SecurityPrivacyPage />} />
+                        <Route path="/privacy/delete-request" element={<DeleteDataPage />} />
+                        <Route
+                            path="/ai-guide"
+                            element={
+                                <ErrorBoundary fallback={({ error, reset }) => <AIChatErrorFallback reset={reset} />}>
+                                    <AIGuidePage />
+                                </ErrorBoundary>
+                            }
+                        />
+                        <Route path="/saved" element={<SavedPage />} />
+                        <Route path="/visited" element={<VisitedPage />} />
+                        <Route path="/map" element={<Navigate to="/explore" replace />} />
+                    </Route>
                 </Route>
 
-                {/* Admin Routes */}
-                <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<AdminDashboardPage />} />
-                    <Route path="locations" element={<AdminLocationsPage />} />
-                    <Route path="users" element={<AdminUsersPage />} />
-                    <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
-                    <Route path="moderation" element={<AdminModerationPage />} />
-                    <Route path="ai" element={<AdminAIPage />} />
-                    <Route path="stats" element={<AdminStatsPage />} />
-                    <Route path="settings" element={<AdminSettingsPage />} />
+                {/* Admin Routes — protected: requires role === 'admin' */}
+                <Route element={<RequireAdmin />}>
+                    <Route path="/admin" element={<AdminLayout />}>
+                        <Route index element={<AdminDashboardPage />} />
+                        <Route path="locations" element={<AdminLocationsPage />} />
+                        <Route path="users" element={<AdminUsersPage />} />
+                        <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                        <Route path="moderation" element={<AdminModerationPage />} />
+                        <Route path="ai" element={<AdminAIPage />} />
+                        <Route path="stats" element={<AdminStatsPage />} />
+                        <Route path="settings" element={<AdminSettingsPage />} />
+                    </Route>
                 </Route>
 
                 {/* Fallback */}

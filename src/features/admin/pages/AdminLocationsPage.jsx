@@ -717,7 +717,7 @@ const AdminLocationsPage = () => {
                                                             "relative aspect-square rounded-2xl overflow-hidden group border-2 transition-all",
                                                             formData.image_url === img ? "border-indigo-500 shadow-lg shadow-indigo-500/10" : "border-transparent"
                                                         )}>
-                                                            <img src={img} className="w-full h-full object-cover" />
+                                                            <img src={img} alt="Location photo option" className="w-full h-full object-cover" />
                                                             <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2">
                                                                 <button
                                                                     onClick={() => setFormData({ ...formData, image_url: img })}

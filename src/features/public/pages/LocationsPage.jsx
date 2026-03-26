@@ -1,11 +1,12 @@
-import React, { useState, useEffect, memo } from 'react'
+import React, { useState, useEffect, useRef, memo } from 'react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
     MapPin, Search, SlidersHorizontal, Star, Clock,
     Heart, Share2, ChevronRight, Home, Utensils,
     Coffee, Wine, Store, Navigation, List, ChevronUp,
-    ArrowUpDown, X, SearchX
+    ArrowUpDown, X, SearchX, AlertCircle
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import FilterModal from '@/features/dashboard/components/FilterModal'
@@ -16,6 +17,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useOpenStatus } from '@/hooks/useOpenStatus'
 import LazyImage from '@/components/ui/LazyImage'
 import { LocationCardMobileSkeleton, LocationCardDesktopSkeleton } from '@/components/ui/Skeleton'
+import { useLocationsQuery } from '@/hooks/useLocationsQuery'
 
 // ─── Category config ──────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -77,6 +79,7 @@ const MobileCard = memo(function MobileCard({ item, isDark, textStyle, subTextSt
                 {/* Save button */}
                 <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id) }}
+                    aria-label={saved ? 'Remove from favorites' : 'Add to favorites'}
                     className={`absolute top-3 right-3 w-10 h-10 rounded-xl backdrop-blur-md flex items-center justify-center border active:scale-90 transition-all ${
                         saved ? 'bg-red-500 border-red-400 text-white' : 'bg-white/20 border-white/30 text-white'
                     }`}
@@ -176,6 +179,27 @@ const DesktopCard = memo(function DesktopCard({ item, isDark, textStyle, subText
     )
 })
 
+// ─── Error state ──────────────────────────────────────────────────────────
+function ErrorState({ isDark }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center py-20 text-center"
+        >
+            <div className={`w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
+                <AlertCircle size={36} className="text-red-400" />
+            </div>
+            <h3 className={`text-lg font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Failed to load venues
+            </h3>
+            <p className={`text-sm font-medium ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                Check your connection and try again.
+            </p>
+        </motion.div>
+    )
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────
 function EmptyState({ query, isDark }) {
     const { resetFilters } = useLocationsStore()
@@ -238,11 +262,16 @@ const LocationsPage = () => {
         return () => resetFilters()
     }, [])
 
-    const [isLoading, setIsLoading] = useState(true)
-    useEffect(() => {
-        const t = setTimeout(() => setIsLoading(false), 600)
-        return () => clearTimeout(t)
-    }, [city])
+    // Fetch real venue data from OpenStreetMap; syncs to Zustand store automatically
+    const { isPending: isLoading, isError } = useLocationsQuery(city, country)
+
+    const scrollContainerRef = useRef(null)
+    const virtualizer = useVirtualizer({
+        count: isLoading ? 0 : filteredLocations.length,
+        getScrollElement: () => scrollContainerRef.current,
+        estimateSize: () => 342,
+        overscan: 3,
+    })
 
     const [activeTab, setActiveTab] = useState('overview')
     const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -263,7 +292,7 @@ const LocationsPage = () => {
         //    — fixed elements inside a CSS-transformed parent are positioned relative
         //    to that parent, not the viewport.
         // 2. The individual child elements already have their own motion animations.
-        <div className="fixed inset-0 w-full h-[100dvh] bg-transparent overflow-hidden overscroll-none">
+        <div data-lenis-prevent className="fixed inset-0 w-full h-[100dvh] bg-transparent overflow-hidden overscroll-none">
             <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} theme={theme} />
 
             {/* ── MOBILE: Map layer ─────────────────────────────────────── */}
@@ -336,6 +365,7 @@ const LocationsPage = () => {
 
                     {/* Sheet content */}
                     <motion.div
+                        ref={scrollContainerRef}
                         className="flex-1 overflow-y-auto pt-2 pb-32 px-[4vw] scrollbar-hide overscroll-contain touch-pan-y"
                         animate={{ opacity: sheetMode === 'full' ? 1 : 0, filter: sheetMode === 'full' ? 'blur(0px)' : 'blur(10px)' }}
                         transition={{ duration: 0.3 }}
@@ -378,25 +408,35 @@ const LocationsPage = () => {
                                     <LocationCardMobileSkeleton key={i} isDark={isDark} />
                                 ))}
                             </div>
+                        ) : isError ? (
+                            <ErrorState isDark={isDark} />
                         ) : filteredLocations.length === 0 ? (
                             <EmptyState query={localSearch} isDark={isDark} />
                         ) : (
-                            <motion.div
-                                initial="hidden"
-                                animate="visible"
-                                variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
-                                className="space-y-5"
-                            >
-                                {filteredLocations.map((item) => (
-                                    <MobileCard
-                                        key={item.id}
-                                        item={item}
-                                        isDark={isDark}
-                                        textStyle={textStyle}
-                                        subTextStyle={subTextStyle}
-                                    />
+                            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+                                {virtualizer.getVirtualItems().map((virtualRow) => (
+                                    <div
+                                        key={virtualRow.key}
+                                        data-index={virtualRow.index}
+                                        ref={virtualizer.measureElement}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            transform: `translateY(${virtualRow.start}px)`,
+                                            paddingBottom: '20px',
+                                        }}
+                                    >
+                                        <MobileCard
+                                            item={filteredLocations[virtualRow.index]}
+                                            isDark={isDark}
+                                            textStyle={textStyle}
+                                            subTextStyle={subTextStyle}
+                                        />
+                                    </div>
                                 ))}
-                            </motion.div>
+                            </div>
                         )}
                     </motion.div>
                 </div>
@@ -447,6 +487,8 @@ const LocationsPage = () => {
                             <div className="relative">
                                 <button
                                     onClick={() => setSortOpen((o) => !o)}
+                                    aria-label="Sort locations"
+                                    aria-expanded={sortOpen}
                                     className={`h-16 px-6 rounded-[24px] flex items-center gap-2 font-bold text-sm border transition-all ${isDark ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:border-blue-400'}`}
                                 >
                                     <ArrowUpDown size={18} className="text-blue-500" />
@@ -481,6 +523,7 @@ const LocationsPage = () => {
 
                             <button
                                 onClick={() => setIsFilterOpen(true)}
+                                aria-label="Open filters"
                                 className={`h-16 w-16 rounded-[24px] flex items-center justify-center transition-all active:scale-95 border ${isDark ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:border-blue-400'}`}
                             >
                                 <SlidersHorizontal size={22} />
@@ -495,6 +538,8 @@ const LocationsPage = () => {
                             {['overview', 'map'].map((tab) => (
                                 <button
                                     key={tab}
+                                    role="tab"
+                                    aria-selected={activeTab === tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`relative px-10 py-3 rounded-full text-base font-bold capitalize transition-all z-10 ${activeTab === tab ? 'text-blue-600' : 'text-white hover:bg-white/10'}`}
                                 >
@@ -536,6 +581,8 @@ const LocationsPage = () => {
                                     <LocationCardDesktopSkeleton key={i} isDark={isDark} />
                                 ))}
                             </div>
+                        ) : isError ? (
+                            <ErrorState isDark={isDark} />
                         ) : filteredLocations.length === 0 ? (
                             <EmptyState query={localSearch} isDark={isDark} />
                         ) : (

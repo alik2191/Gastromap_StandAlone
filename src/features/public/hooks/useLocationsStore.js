@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { MOCK_LOCATIONS } from '@/mocks/locations'
+import { getLocations } from '@/shared/api/locations.api'
 
 /**
  * useLocationsStore — client-side filter state for the locations list.
@@ -98,66 +99,64 @@ function applyAllFilters(locations, filters) {
 export const useLocationsStore = create((set, get) => ({
     locations: MOCK_LOCATIONS,
     filteredLocations: MOCK_LOCATIONS,
+    isLoading: false,
 
     ...DEFAULT_FILTERS,
 
     // ─── Filter setters ───────────────────────────────────────────────────
 
-    setCategory: (activeCategory) => {
-        set({ activeCategory })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, activeCategory }) }))
-    },
+    setCategory: (activeCategory) =>
+        set(state => ({
+            activeCategory,
+            filteredLocations: applyAllFilters(state.locations, { ...state, activeCategory }),
+        })),
 
-    setSearchQuery: (searchQuery) => {
-        set({ searchQuery })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, searchQuery }) }))
-    },
+    setSearchQuery: (searchQuery) =>
+        set(state => ({
+            searchQuery,
+            filteredLocations: applyAllFilters(state.locations, { ...state, searchQuery }),
+        })),
 
-    setPriceLevels: (activePriceLevels) => {
-        set({ activePriceLevels })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, activePriceLevels }) }))
-    },
+    setPriceLevels: (activePriceLevels) =>
+        set(state => ({
+            activePriceLevels,
+            filteredLocations: applyAllFilters(state.locations, { ...state, activePriceLevels }),
+        })),
 
-    setMinRating: (minRating) => {
-        set({ minRating })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, minRating }) }))
-    },
+    setMinRating: (minRating) =>
+        set(state => ({
+            minRating,
+            filteredLocations: applyAllFilters(state.locations, { ...state, minRating }),
+        })),
 
-    setVibes: (activeVibes) => {
-        set({ activeVibes })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, activeVibes }) }))
-    },
+    setVibes: (activeVibes) =>
+        set(state => ({
+            activeVibes,
+            filteredLocations: applyAllFilters(state.locations, { ...state, activeVibes }),
+        })),
 
-    setSortBy: (sortBy) => {
-        set({ sortBy })
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, { ...state, sortBy }) }))
-    },
+    setSortBy: (sortBy) =>
+        set(state => ({
+            sortBy,
+            filteredLocations: applyAllFilters(state.locations, { ...state, sortBy }),
+        })),
 
     /**
-     * Apply multiple filter changes at once — avoids multiple re-renders.
+     * Apply multiple filter changes at once — single set() call, one re-render.
      * @param {Partial<LocationFiltersState>} updates
      */
-    applyFilters: (updates = {}) => {
-        set(updates)
-        set((state) => ({ filteredLocations: applyAllFilters(state.locations, state) }))
-    },
+    applyFilters: (updates = {}) =>
+        set(state => {
+            const next = { ...state, ...updates }
+            return { ...updates, filteredLocations: applyAllFilters(state.locations, next) }
+        }),
 
-    /** Reset all filters to defaults */
-    resetFilters: () => {
-        set({ ...DEFAULT_FILTERS })
-        set((state) => ({ filteredLocations: state.locations }))
-    },
-
-    /** Derived: number of active filters (for badge on filter button) */
-    get activeFilterCount() {
-        const s = get()
-        let count = 0
-        if (s.activeCategory !== 'All') count++
-        if (s.activePriceLevels.length) count++
-        if (s.minRating != null) count++
-        if (s.activeVibes.length) count++
-        return count
-    },
+    /** Reset all filters to defaults — single re-render */
+    resetFilters: () =>
+        set(state => ({
+            ...DEFAULT_FILTERS,
+            filteredLocations: state.locations,
+        })),
 
     // ─── Data mutations (used by Admin) ──────────────────────────────────
 
@@ -189,4 +188,24 @@ export const useLocationsStore = create((set, get) => ({
             const locations = state.locations.filter(loc => loc.id !== id)
             return { locations, filteredLocations: applyAllFilters(locations, state) }
         }),
+
+    /** Load all locations from Supabase (or mocks) and populate the store. */
+    initialize: async () => {
+        if (get().isLoading) return
+        set({ isLoading: true })
+        try {
+            const { data } = await getLocations({ limit: 500 })
+            if (data?.length) {
+                set((state) => ({
+                    locations: data,
+                    filteredLocations: applyAllFilters(data, state),
+                    isLoading: false,
+                }))
+            } else {
+                set({ isLoading: false })
+            }
+        } catch {
+            set({ isLoading: false })
+        }
+    },
 }))

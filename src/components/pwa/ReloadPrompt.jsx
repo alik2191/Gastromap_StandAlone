@@ -8,14 +8,7 @@ function ReloadPrompt() {
         offlineReady: [offlineReady, setOfflineReady],
         needRefresh: [needRefresh, setNeedRefresh],
         updateServiceWorker,
-    } = useRegisterSW({
-        onRegistered(r) {
-            console.log('SW Registered: ' + r)
-        },
-        onRegisterError(error) {
-            console.log('SW registration error', error)
-        },
-    })
+    } = useRegisterSW()
 
     const close = () => {
         setOfflineReady(false)
@@ -37,10 +30,10 @@ function ReloadPrompt() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-base font-black tracking-tight leading-tight">
-                                {offlineReady ? 'Готово к работе офлайн' : 'Доступно обновление!'}
+                                {offlineReady ? 'Ready to work offline' : 'Update available!'}
                             </span>
                             <span className="text-[11px] opacity-70 font-bold uppercase tracking-widest mt-0.5">
-                                {offlineReady ? 'GastroMap работает без интернета' : 'Обновите для новых функций'}
+                                {offlineReady ? 'GastroMap works without internet' : 'Reload for new features'}
                             </span>
                         </div>
                     </div>
@@ -51,11 +44,12 @@ function ReloadPrompt() {
                                 onClick={() => updateServiceWorker(true)}
                                 className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl text-xs font-black shadow-[0_4px_15px_rgba(37,99,235,0.4)] active:scale-95 transition-all hover:brightness-110"
                             >
-                                Обновить
+                                Reload
                             </button>
                         )}
                         <button
                             onClick={close}
+                            aria-label="Dismiss"
                             className="p-2.5 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors border border-white/5"
                         >
                             <X size={20} />

@@ -10,6 +10,7 @@ import {
     Instagram, Facebook, Twitter, ExternalLink, Globe
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
+import { useLocationsStore } from '@/features/public/hooks/useLocationsStore'
 import { MOCK_LOCATIONS } from '@/mocks/locations'
 import { PageTransition } from '@/components/ui/PageTransition'
 import { translate } from '@/utils/translation'
@@ -26,8 +27,12 @@ const LocationDetailsPage = () => {
     const { theme } = useTheme()
     const isDark = theme === 'dark'
 
-    // Find location from global mocks
-    const location = MOCK_LOCATIONS.find(loc => loc.id === id) || MOCK_LOCATIONS[0]
+    // Find location: store first (OSM data), then mock fallback, then null
+    // Use String() coercion — URL params are always strings, DB ids may be numbers
+    const storeLocations = useLocationsStore(s => s.locations)
+    const location = storeLocations.find(loc => String(loc.id) === id)
+        ?? MOCK_LOCATIONS.find(loc => String(loc.id) === id)
+        ?? null
 
     // Connect to real stores
     const { isFavorite, toggleFavorite } = useFavoritesStore()
@@ -50,7 +55,19 @@ const LocationDetailsPage = () => {
     const [isWritingReview, setIsWritingReview] = useState(false)
     const [newReview, setNewReview] = useState({ rating: 5, text: "" })
 
-    if (!location) return null
+    if (!location) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+            <MapPin size={48} className="text-gray-300" />
+            <h2 className="text-xl font-black text-gray-700 dark:text-gray-200">Location not found</h2>
+            <p className="text-sm text-gray-400">This place may have been removed or the link is incorrect.</p>
+            <button
+                onClick={() => navigate('/explore')}
+                className="mt-2 px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm"
+            >
+                Browse places
+            </button>
+        </div>
+    )
 
     const handleScroll = (e) => {
         const { scrollLeft, scrollWidth, clientWidth } = e.target
@@ -67,7 +84,11 @@ const LocationDetailsPage = () => {
     }
 
     const callNumber = () => {
-        window.location.href = `tel:+48123456789`
+        const phone = location?.phone
+        if (!phone) return
+        // Validate: must start with + or digits only — prevents open redirects via tel:
+        if (!/^\+?[\d\s\-().]{7,20}$/.test(phone)) return
+        window.location.href = `tel:${phone}`
     }
 
     const textStyle = isDark ? "text-white" : "text-gray-900"
@@ -84,20 +105,29 @@ const LocationDetailsPage = () => {
         <div className="space-y-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                    { icon: Clock, label: openLabel || "Hours Today", value: location.openingHours, color: isOpen ? "bg-emerald-500/10 text-emerald-500" : isOpen === false ? "bg-red-500/10 text-red-400" : "bg-blue-500/10 text-blue-500" },
-                    { icon: Phone, label: "Contact", value: "+48 123 456 789", color: "bg-green-500/10 text-green-500" },
-                    { icon: MessageSquare, label: "Total Reviews", value: "245 Verified", color: "bg-purple-500/10 text-purple-500" },
-                    { icon: Navigation, label: "Direction", value: "0.8 km Near", color: "bg-orange-500/10 text-orange-500" }
-                ].map((info, i) => (
+                    { icon: Clock, label: openLabel || "Hours Today", value: location.openingHours || '—', color: isOpen ? "bg-emerald-500/10 text-emerald-500" : isOpen === false ? "bg-red-500/10 text-red-400" : "bg-blue-500/10 text-blue-500" },
+                    { icon: Phone, label: "Contact", value: location.phone || '—', color: "bg-green-500/10 text-green-500", hidden: !location.phone },
+                    { icon: MessageSquare, label: "Total Reviews", value: aggregate.count ? `${aggregate.count} reviews` : 'No reviews', color: "bg-purple-500/10 text-purple-500" },
+                    { icon: Navigation, label: "Directions", value: location.address ? 'Open in Maps' : '—', color: "bg-orange-500/10 text-orange-500" }
+                ].filter(info => !info.hidden).map((info, i) => (
                     <motion.div
                         key={i}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={info.label}
                         variants={fadeInUp}
                         initial="hidden"
                         animate="visible"
                         transition={{ delay: 0.1 * i }}
                         onClick={() => {
-                            if (info.label === "Direction") openInMaps()
+                            if (info.label === "Directions") openInMaps()
                             if (info.label === "Contact") callNumber()
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                if (info.label === "Directions") openInMaps()
+                                if (info.label === "Contact") callNumber()
+                            }
                         }}
                         className={`p-4 rounded-[24px] border transition-all duration-500 group cursor-pointer ${cardBg} hover:shadow-lg`}
                     >
@@ -227,11 +257,11 @@ const LocationDetailsPage = () => {
                         <h3 className={`text-2xl font-black ${textStyle}`}>Find them online</h3>
                         <div className="flex gap-3 justify-center md:justify-start">
                             {[
-                                { icon: Instagram, color: "hover:bg-pink-500 hover:text-white" },
-                                { icon: Facebook, color: "hover:bg-blue-600 hover:text-white" },
-                                { icon: Twitter, color: "hover:bg-black hover:text-white" }
+                                { icon: Instagram, color: "hover:bg-pink-500 hover:text-white", label: "Instagram" },
+                                { icon: Facebook, color: "hover:bg-blue-600 hover:text-white", label: "Facebook" },
+                                { icon: Twitter, color: "hover:bg-black hover:text-white", label: "Twitter / X" }
                             ].map((social, i) => (
-                                <button key={i} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-500'} ${social.color}`}>
+                                <button key={i} aria-label={social.label} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-500'} ${social.color}`}>
                                     <social.icon size={22} />
                                 </button>
                             ))}

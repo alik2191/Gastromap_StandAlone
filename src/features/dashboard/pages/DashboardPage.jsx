@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../auth/hooks/useAuthStore'
 import { useLocationsStore } from '@/features/public/hooks/useLocationsStore'
+import { useFavoritesStore } from '@/features/dashboard/hooks/useFavoritesStore'
 import { useNavigate, Link } from 'react-router-dom'
 import AuroraBackground from '@/components/ui/aurora-background'
 import { MapPin, Star, Heart, Clock, ChevronRight, Moon, Sun, Search as SearchIcon, SlidersHorizontal, ShieldCheck } from 'lucide-react'
@@ -15,22 +16,18 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useTranslation } from 'react-i18next'
 
 // --- MOBILE COMPONENTS ---
+// Proper seamless marquee: two copies of the text side-by-side, animate x from 0 to -50%
 const MarqueeTitle = ({ title, theme }) => {
     if (!title) return null
     return (
         <div className="overflow-hidden whitespace-nowrap relative">
             <motion.div
-                animate={{
-                    x: [0, -100, 0],
-                }}
-                transition={{
-                    duration: 10,
-                    repeat: Infinity,
-                    ease: "linear",
-                }}
-                className={`inline-block text-base font-black leading-tight ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}
+                animate={{ x: ['0%', '-50%'] }}
+                transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+                className={`inline-flex text-base font-black leading-tight ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}
             >
-                {title}
+                <span className="pr-12">{title}</span>
+                <span className="pr-12">{title}</span>
             </motion.div>
         </div>
     )
@@ -39,6 +36,8 @@ const MarqueeTitle = ({ title, theme }) => {
 const LocationCardMobile = ({ loc, type = 'recommended' }) => {
     const { theme } = useTheme()
     const isDark = theme === 'dark'
+    const { isFavorite, toggleFavorite } = useFavoritesStore()
+    const saved = isFavorite(loc?.id)
 
     if (!loc) return null
 
@@ -100,9 +99,10 @@ const LocationCardMobile = ({ loc, type = 'recommended' }) => {
                 {/* Heart Button */}
                 <button
                     className="flex-shrink-0 p-1 mb-0.5 active:scale-90 transition-transform"
-                    onClick={(e) => { e.stopPropagation(); }}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(loc.id) }}
+                    aria-label={saved ? 'Remove from saved' : 'Save place'}
                 >
-                    <Heart size={20} className="text-red-500 stroke-[2.2]" />
+                    <Heart size={20} className={saved ? 'text-red-500 fill-red-500' : 'text-gray-300 stroke-[2.2]'} />
                 </button>
             </div>
         </div>
@@ -119,11 +119,8 @@ const DashboardPage = () => {
     const navigate = useNavigate()
     const { theme } = useTheme()
     const isDark = theme === 'dark'
-    const [isLoading, setIsLoading] = useState(true)
-    useEffect(() => {
-        const t = setTimeout(() => setIsLoading(false), 700)
-        return () => clearTimeout(t)
-    }, [])
+    // Use the real loading state from the store (set by initialize() when fetching from Supabase)
+    const isLoading = useLocationsStore(s => s.isLoading)
 
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
@@ -136,16 +133,30 @@ const DashboardPage = () => {
     }, [debouncedSearch])
 
     const countries = [
-        { name: 'Poland', cities: '3 cities', places: '211 places', image: 'https://images.unsplash.com/photo-1519197924294-4ba991a11128?q=80&w=2069&auto=format&fit=crop', newCount: 9 },
-        { name: 'France', cities: '2 cities', places: '99 places', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop', newCount: 3 },
-        { name: 'Spain', cities: '4 cities', places: '299 places', image: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=2070&auto=format&fit=crop', newCount: 5 },
+        { name: 'Poland',      slug: 'poland',      image: 'https://images.unsplash.com/photo-1519197924294-4ba991a11128?q=80&w=2069&auto=format&fit=crop', newCount: 9 },
+        { name: 'France',      slug: 'france',      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop', newCount: 3 },
+        { name: 'Spain',       slug: 'spain',       image: 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=2070&auto=format&fit=crop', newCount: 5 },
+        { name: 'Italy',       slug: 'italy',       image: 'https://images.unsplash.com/photo-1529543544282-ea669407fca3?q=80&w=2048&auto=format&fit=crop', newCount: 7 },
+        { name: 'Germany',     slug: 'germany',     image: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=2070&auto=format&fit=crop', newCount: 4 },
+        { name: 'Portugal',    slug: 'portugal',    image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?q=80&w=2070&auto=format&fit=crop', newCount: 2 },
+        { name: 'Netherlands', slug: 'netherlands', image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?q=80&w=2070&auto=format&fit=crop', newCount: 3 },
+        { name: 'Czechia',     slug: 'czechia',     image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?q=80&w=2070&auto=format&fit=crop', newCount: 6 },
     ]
 
-    const recommended = [
-        { id: 101, title: 'La Mammola', subtitle: 'Authentic Italian flavors', rating: 4.8, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop', special_labels: ['Signature Cuisine', 'Michelin Guide'] },
-        { id: 102, title: 'Hamsa Hummus', subtitle: 'Modern Israeli cuisine', rating: 4.7, image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=1974&auto=format&fit=crop', special_labels: ['Vegan Menu', 'Local Favorite'] },
-        { id: 103, title: 'Szara Gęś', subtitle: 'Best view in Krakow', rating: 4.9, image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=2070&auto=format&fit=crop', special_labels: ['Michelin Star', 'Scenic View'] },
-    ]
+    // Top-rated places
+    const recommended = useMemo(
+        () => [...locations].sort((a, b) => b.rating - a.rating).slice(0, 5),
+        [locations]
+    )
+
+    // "Trending" — most recently added, different from recommended top-5
+    const trending = useMemo(() => {
+        const topIds = new Set(recommended.map(l => l.id))
+        return [...locations]
+            .filter(l => !topIds.has(l.id))
+            .slice(-5)
+            .reverse()
+    }, [locations, recommended])
 
     const textStyle = theme === 'light' ? "text-gray-900" : "text-white"
 
@@ -175,6 +186,7 @@ const DashboardPage = () => {
                         </div>
                         <button
                             onClick={() => setIsFilterOpen(true)}
+                            aria-label="Open filters"
                             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-95 border ${isDark ? 'bg-blue-600/10 border-blue-500/20 text-blue-500' : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 border-transparent'}`}
                         >
                             <SlidersHorizontal size={18} />
@@ -195,8 +207,8 @@ const DashboardPage = () => {
                     </div>
 
                     <div className="flex gap-[12px] overflow-x-auto pb-4 -mx-[2.5vw] px-[2.5vw] scrollbar-hide snap-x snap-mandatory transition-all">
-                        {countries.map((country, i) => (
-                            <div key={i} onClick={() => navigate(`/explore/${country.name.toLowerCase()}`)} className="relative flex-shrink-0 w-[240px] h-[160px] rounded-[24px] overflow-hidden shadow-2xl snap-center group">
+                        {countries.map((country) => (
+                            <button key={country.slug} onClick={() => navigate(`/explore/${country.slug}`)} aria-label={`Explore ${country.name}`} className="relative flex-shrink-0 w-[240px] h-[160px] rounded-[24px] overflow-hidden shadow-2xl snap-center group text-left">
                                 <img src={country.image} crossOrigin="anonymous" alt={country.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                                 <div className="absolute top-3 right-3 bg-blue-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full shadow-lg">
@@ -204,12 +216,8 @@ const DashboardPage = () => {
                                 </div>
                                 <div className="absolute bottom-4 left-5">
                                     <h4 className="text-xl font-black text-white leading-none">{country.name}</h4>
-                                    <div className="flex items-center gap-1.5 mt-1 text-white/90">
-                                        <MapPin size={12} className="fill-white/20" />
-                                        <span className="text-[11px] font-bold">{country.cities} • {country.places}</span>
-                                    </div>
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -261,7 +269,7 @@ const DashboardPage = () => {
                                     <DashboardCardSkeleton isDark={isDark} />
                                 </div>
                             ))
-                            : [...locations].reverse().slice(0, 5).map((loc) => (
+                            : trending.map((loc) => (
                                 <div key={loc.id} className="snap-center">
                                     <LocationCardMobile loc={loc} type="trending" />
                                 </div>
@@ -411,22 +419,21 @@ const DesktopDashboard = ({ locations, recommended, authUser, countries, theme, 
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {countries.map((country, i) => (
-                                <motion.div key={i} onClick={() => navigate(`/explore/${country.name.toLowerCase()}`)} whileHover={{ y: -8, scale: 1.02 }} className="relative h-56 rounded-[32px] overflow-hidden group cursor-pointer shadow-lg">
+                            {countries.map((country) => (
+                                <motion.button key={country.slug} onClick={() => navigate(`/explore/${country.slug}`)} aria-label={`Explore ${country.name}`} whileHover={{ y: -8, scale: 1.02 }} className="relative h-56 rounded-[32px] overflow-hidden group cursor-pointer shadow-lg text-left w-full">
                                     <img src={country.image} alt={country.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                     <div className="absolute bottom-6 left-6 text-white">
                                         <h4 className="text-2xl font-bold mb-1">{country.name}</h4>
-                                        <div className="flex gap-3 text-xs opacity-90">
-                                            <span>{country.cities}</span>
-                                            <span>•</span>
-                                            <span>{country.places}</span>
+                                        <div className="flex items-center gap-1.5 text-xs opacity-90">
+                                            <MapPin size={12} className="fill-white/20" />
+                                            <span>Explore cities</span>
                                         </div>
                                     </div>
                                     <div className="absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ChevronRight className="text-white" size={20} />
                                     </div>
-                                </motion.div>
+                                </motion.button>
                             ))}
                         </div>
                     </motion.div>

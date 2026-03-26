@@ -77,6 +77,24 @@ export function DashboardCardSkeleton({ isDark }) {
     )
 }
 
+// ─── City card (matches city card in CitiesPage mobile h-48 / desktop h-64) ──
+
+export function CityCardSkeleton({ desktop = false }) {
+    return (
+        <div className={cn(
+            'relative overflow-hidden rounded-[28px]',
+            desktop ? 'h-64 rounded-[32px]' : 'h-48'
+        )}>
+            <Skeleton className="absolute inset-0 rounded-none" />
+            {/* Simulate text overlay at the bottom */}
+            <div className="absolute bottom-5 left-6 space-y-2">
+                <Skeleton className="h-6 w-32 rounded-xl bg-white/20" />
+                <Skeleton className="h-4 w-20 rounded-xl bg-white/10" />
+            </div>
+        </div>
+    )
+}
+
 // ─── Location details hero (matches hero section in LocationDetailsPage) ─────
 
 export function LocationDetailsSkeleton({ isDark }) {

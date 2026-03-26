@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft, CheckCircle2, ChevronRight, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore'
 
 const LoginPage = () => {
     const navigate = useNavigate()
-    const [isLoading, setIsLoading] = useState(false)
+    const { login, isLoading, error, clearError } = useAuthStore()
     const [showPassword, setShowPassword] = useState(false)
 
     // Form variants
@@ -23,20 +23,17 @@ const LoginPage = () => {
         visible: { opacity: 1, x: 0 }
     }
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault()
+        clearError()
         const formData = new FormData(e.currentTarget)
         const email = formData.get('email')
-        setIsLoading(true)
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            if (email === 'admin@gastromap.com') {
-                navigate('/admin')
-            } else {
-                navigate('/dashboard')
-            }
-        }, 1500)
+        const password = formData.get('password')
+
+        const result = await login(email, password)
+        if (result.success) {
+            navigate(result.user?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+        }
     }
 
     return (
@@ -114,6 +111,13 @@ const LoginPage = () => {
                     </motion.div>
 
                     <form onSubmit={handleLogin} className="space-y-5">
+
+                        {/* Error message */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-medium px-4 py-3 rounded-2xl">
+                                {error}
+                            </div>
+                        )}
 
                         {/* Email Input */}
                         <motion.div variants={itemVariants} className="space-y-2">

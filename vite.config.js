@@ -13,7 +13,7 @@ export default defineConfig({
       manifest: {
         name: 'GastroMap — Smart AI Dining Guide',
         short_name: 'GastroMap',
-        description: 'Откройте для себя лучшие рестораны с помощью ИИ. Ваш персональный гастрономический эксперт.',
+        description: 'Discover the best restaurants with AI. Your personal gastronomic expert.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
@@ -107,18 +107,18 @@ export default defineConfig({
           'react-router': ['react-router-dom'],
           // Heavy animation library
           'framer-motion': ['framer-motion'],
-          // WebGL animation (isolated chunk)
-          'aurora-webgl': ['/src/components/ui/aurora-webgl.jsx'],
           // Icons (large library)
           'lucide': ['lucide-react'],
+          // Map libraries (only loaded on explore/map pages)
+          'leaflet': ['leaflet', 'react-leaflet'],
+          // i18n
+          'i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          // TanStack utilities
+          'tanstack': ['@tanstack/react-query', '@tanstack/react-virtual'],
           // Admin (never needed on public routes)
           'admin': [
             '/src/features/admin/layout/AdminLayout.jsx',
             '/src/features/admin/pages/AdminDashboardPage.jsx',
-          ],
-          // Dashboard
-          'dashboard': [
-            '/src/features/dashboard/pages/DashboardPage.jsx',
           ],
         }
       }

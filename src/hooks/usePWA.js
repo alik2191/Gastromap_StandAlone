@@ -25,7 +25,6 @@ export function usePWA() {
             setIsInstallable(false)
             setIsInstalled(true)
             setDeferredPrompt(null)
-            console.log('GastroMap was installed')
         })
 
         return () => {
@@ -41,7 +40,7 @@ export function usePWA() {
 
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice
-        console.log(`User response to the install prompt: ${outcome}`)
+        void outcome
 
         // We've used the prompt, and can't use it again, throw it away
         setDeferredPrompt(null)

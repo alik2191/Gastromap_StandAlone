@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
     Star, MapPin, Utensils, Coffee, ChevronRight, Award,
     Settings, LogOut, User, Lock, MessageSquare, FileText,
-    HelpCircle, Mail, Shield, Globe, UserX, PlusCircle, CheckCircle2, Clock, Sparkles, Users
+    HelpCircle, Mail, Shield, Globe, UserX, PlusCircle, CheckCircle2, Clock, Sparkles, Users, ShieldCheck
 } from 'lucide-react'
 import { useAuthStore } from '../../auth/hooks/useAuthStore'
 import { useTheme } from '@/hooks/useTheme'
@@ -57,6 +57,12 @@ const ProfilePage = () => {
 
     // State for Feedback
     const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+    const [toast, setToast] = useState(null)
+
+    const showToast = (msg) => {
+        setToast(msg)
+        setTimeout(() => setToast(null), 3500)
+    }
 
     // Styling
     const textStyle = isDark ? "text-white" : "text-gray-900"
@@ -80,6 +86,7 @@ const ProfilePage = () => {
         {
             section: t('profile.section_account'),
             items: [
+                ...(user?.role === 'admin' ? [{ icon: ShieldCheck, label: 'Admin Panel', link: "/admin", highlight: true }] : []),
                 { icon: User, label: t('profile.personal_info'), link: "/profile/edit" },
                 { icon: Globe, label: t('profile.language_region'), link: "/profile/language", value: "English" },
                 { icon: Lock, label: t('profile.security'), link: "/profile/security" },
@@ -111,12 +118,12 @@ const ProfilePage = () => {
                             const registration = await navigator.serviceWorker.getRegistration();
                             if (registration) {
                                 await registration.update();
-                                alert('Checking for updates... If a new version is available, it will download in the background.');
+                                showToast('Checking for updates… New version will download in the background.');
                             } else {
-                                alert('Service Worker not registered. PWA might not be installed.');
+                                showToast('Service Worker not registered. PWA might not be installed.');
                             }
                         } else {
-                            alert('Offline mode not supported by this browser.');
+                            showToast('Offline mode is not supported by this browser.');
                         }
                     }
                 },
@@ -127,6 +134,20 @@ const ProfilePage = () => {
     return (
         <div className="w-full min-h-screen relative z-10 pb-32">
             <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} theme={theme} />
+
+            {/* Inline toast */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 24 }}
+                        className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white bg-gray-900/95 backdrop-blur-md border border-white/10 max-w-xs text-center"
+                    >
+                        {toast}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Profile Header - Compact */}
             <div className="pt-24 px-6 flex flex-col items-center text-center">
@@ -142,8 +163,14 @@ const ProfilePage = () => {
                 <p className={`text-sm font-medium ${subTextStyle}`}>{user.email}</p>
 
                 <div className="flex flex-wrap justify-center gap-2 mt-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'}`}>Foodie</span>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isDark ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : 'bg-purple-50 border-purple-200 text-purple-600'}`}>Reviewer</span>
+                    {user?.role === 'admin' && (
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1 ${isDark ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+                            <ShieldCheck size={10} />Admin
+                        </span>
+                    )}
+                    {user?.role !== 'admin' && (
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'}`}>Member</span>
+                    )}
                 </div>
             </div>
 
@@ -310,17 +337,17 @@ const ProfilePage = () => {
                                 <button
                                     key={idx}
                                     onClick={() => item.action ? item.action() : navigate(item.link)}
-                                    className={`w-full flex items-center justify-between p-4 transition-colors ${itemHover} ${idx !== group.items.length - 1 ? (isDark ? 'border-b border-white/5' : 'border-b border-gray-100') : ''}`}
+                                    className={`w-full flex items-center justify-between p-4 transition-colors ${item.highlight ? (isDark ? 'hover:bg-indigo-500/10' : 'hover:bg-indigo-50') : itemHover} ${idx !== group.items.length - 1 ? (isDark ? 'border-b border-white/5' : 'border-b border-gray-100') : ''}`}
                                 >
                                     <div className="flex items-center gap-3.5">
-                                        <div className={`p-2 rounded-xl ${isDark ? 'bg-white/5 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                        <div className={`p-2 rounded-xl ${item.highlight ? (isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'bg-white/5 text-white' : 'bg-gray-100 text-gray-600')}`}>
                                             <item.icon size={18} />
                                         </div>
-                                        <span className={`text-[15px] font-bold ${textStyle}`}>{item.label}</span>
+                                        <span className={`text-[15px] font-bold ${item.highlight ? (isDark ? 'text-indigo-400' : 'text-indigo-600') : textStyle}`}>{item.label}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {item.value && <span className={`text-xs font-medium ${subTextStyle}`}>{item.value}</span>}
-                                        <ChevronRight size={16} className={isDark ? "text-white/30" : "text-gray-300"} />
+                                        <ChevronRight size={16} className={item.highlight ? (isDark ? 'text-indigo-400/50' : 'text-indigo-300') : (isDark ? 'text-white/30' : 'text-gray-300')} />
                                     </div>
                                 </button>
                             ))}

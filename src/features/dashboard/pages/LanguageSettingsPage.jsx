@@ -13,10 +13,10 @@ const LanguageSettingsPage = () => {
 
     const [selectedRegion, setSelectedRegion] = useState('pl')
 
+    // RU locale removed: only ~4 keys translated (vs 100+ in EN/PL) — re-add when complete
     const languages = [
-        { code: 'en', name: 'English', flag: '🇬🇧' },
-        { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-        { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+        { code: 'en', name: 'English',    flag: '🇬🇧' },
+        { code: 'pl', name: 'Polski',     flag: '🇵🇱' },
         { code: 'ua', name: 'Українська', flag: '🇺🇦' },
     ]
 

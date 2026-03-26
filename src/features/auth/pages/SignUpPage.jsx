@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, CheckCircle2, ChevronRight, Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronRight, Mail, Lock, Eye, EyeOff, User, MailCheck } from 'lucide-react'
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore'
 
 const SignUpPage = () => {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const action = searchParams.get('action')
 
-    const [isLoading, setIsLoading] = useState(false)
+    const { register, isLoading, error, clearError } = useAuthStore()
     const [showPassword, setShowPassword] = useState(false)
+    const [emailSent, setEmailSent] = useState(false)
 
     // Form variants
     const formContainerVariants = {
@@ -26,21 +27,23 @@ const SignUpPage = () => {
         visible: { opacity: 1, x: 0 }
     }
 
-    const handleSignUp = (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault()
-        setIsLoading(true)
+        clearError()
+        const formData = new FormData(e.currentTarget)
+        const name = formData.get('name')
+        const email = formData.get('email')
+        const password = formData.get('password')
 
-        // Simulate API call and flow routing
-        setTimeout(() => {
-            setIsLoading(false)
-            if (action === 'add-place') {
-                // If they came from "Add a Place", redirect them to the new add-place form (mock route for now)
-                navigate('/dashboard/add-place')
-            } else {
-                // Regular signup goes to dashboard
-                navigate('/dashboard')
+        const result = await register(email, password, name)
+        if (result.success) {
+            if (result.emailConfirmation) {
+                setEmailSent(true)
+                return
             }
-        }, 1500)
+            const dest = action === 'add-place' ? '/dashboard/add-place' : '/dashboard'
+            navigate(dest, { replace: true })
+        }
     }
 
     return (
@@ -105,6 +108,18 @@ const SignUpPage = () => {
                     <ArrowLeft size={20} className="text-gray-900 group-hover:-translate-x-1 transition-transform" />
                 </Link>
 
+                {/* Email confirmation screen */}
+                {emailSent ? (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                        className="w-full max-w-[420px] bg-white p-8 md:p-12 rounded-[40px] shadow-xl border border-gray-100 text-center">
+                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-6">
+                            <MailCheck size={32} className="text-blue-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+                        <p className="text-gray-500 mb-6">We sent a confirmation link. Click it to activate your account.</p>
+                        <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700">Back to Sign in</Link>
+                    </motion.div>
+                ) : (
                 <motion.div
                     variants={formContainerVariants}
                     initial="hidden"
@@ -122,6 +137,13 @@ const SignUpPage = () => {
                     </motion.div>
 
                     <form onSubmit={handleSignUp} className="space-y-5">
+                        {/* Error message */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-medium px-4 py-3 rounded-2xl">
+                                {error}
+                            </div>
+                        )}
+
                         {/* Name Input */}
                         <motion.div variants={itemVariants} className="space-y-2">
                             <label htmlFor="name" className="text-sm font-bold text-gray-900 ml-1">Full Name</label>
@@ -129,6 +151,7 @@ const SignUpPage = () => {
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
                                     id="name"
+                                    name="name"
                                     type="text"
                                     required
                                     className="w-full h-12 pl-12 pr-4 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-900 placeholder:text-gray-400"
@@ -160,6 +183,7 @@ const SignUpPage = () => {
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
                                     id="password"
+                                    name="password"
                                     type={showPassword ? "text" : "password"}
                                     required
                                     className="w-full h-12 pl-12 pr-12 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-900 placeholder:text-gray-400"
@@ -220,6 +244,7 @@ const SignUpPage = () => {
                         </p>
                     </motion.div>
                 </motion.div>
+                )} {/* end emailSent conditional */}
             </div>
         </div>
     )

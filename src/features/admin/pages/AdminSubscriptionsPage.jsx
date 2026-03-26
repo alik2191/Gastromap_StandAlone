@@ -9,28 +9,51 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const AdminSubscriptionsPage = () => {
+    const [searchQuery, setSearchQuery] = React.useState('')
+
     const plans = [
         { name: 'Basic', price: '$12', period: 'monthly', users: '345', color: 'bg-slate-400', icon: Zap },
         { name: 'Premium', price: '$99', period: 'yearly', users: '854', color: 'bg-indigo-600', icon: Crown, popular: true },
         { name: 'Lifetime', price: '$499', period: 'once', users: '92', color: 'bg-purple-600', icon: Star },
     ]
 
-    const transactions = [
-        { user: 'Алексей Иванов', plan: 'Premium Yearly', date: 'Сегодня, 14:20', amount: '$99.00', status: 'Success' },
-        { user: 'Мария Петрова', plan: 'Basic Monthly', date: 'Сегодня, 11:05', amount: '$12.00', status: 'Success' },
-        { user: 'Дмитрий С.', plan: 'Lifetime', date: 'Вчера, 19:45', amount: '$499.00', status: 'Pending' },
+    const allTransactions = [
+        { user: 'Alex Johnson', plan: 'Premium Yearly', date: 'Today, 14:20', amount: '$99.00', status: 'Success' },
+        { user: 'Maria Peters', plan: 'Basic Monthly', date: 'Today, 11:05', amount: '$12.00', status: 'Success' },
+        { user: 'Dmitri S.', plan: 'Lifetime', date: 'Yesterday, 19:45', amount: '$499.00', status: 'Pending' },
     ]
+
+    const transactions = searchQuery.trim()
+        ? allTransactions.filter(tx =>
+            tx.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            tx.plan.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : allTransactions
 
     return (
         <div className="space-y-6 lg:space-y-10 pb-12 font-sans">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                 <div>
-                    <h1 className="text-xl lg:text-3xl font-bold text-slate-900 dark:text-white leading-none tracking-tight">Биллинг</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium mt-1.5 text-xs lg:text-base">Мониторинг доходов и управление планами.</p>
+                    <h1 className="text-xl lg:text-3xl font-bold text-slate-900 dark:text-white leading-none tracking-tight">Billing</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium mt-1.5 text-xs lg:text-base">Monitor revenue and manage subscription plans.</p>
                 </div>
-                <button className="flex items-center justify-center gap-2.5 px-8 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white rounded-[20px] font-bold text-[10px] uppercase tracking-widest shadow-sm active:scale-[0.97] transition-all">
-                    <Download size={16} />Отчет
+                <button
+                    onClick={() => {
+                        const csv = ['User,Plan,Date,Amount,Status', ...allTransactions.map(t =>
+                            `"${t.user}","${t.plan}","${t.date}","${t.amount}","${t.status}"`
+                        )].join('\n')
+                        const blob = new Blob([csv], { type: 'text/csv' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = 'subscriptions-report.csv'
+                        a.click()
+                        URL.revokeObjectURL(url)
+                    }}
+                    className="flex items-center justify-center gap-2.5 px-8 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white rounded-[20px] font-bold text-[10px] uppercase tracking-widest shadow-sm active:scale-[0.97] transition-all"
+                >
+                    <Download size={16} />Export CSV
                 </button>
             </div>
 
@@ -60,7 +83,7 @@ const AdminSubscriptionsPage = () => {
                         </div>
 
                         <div className="mt-auto pt-8 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Юзеров</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Users</span>
                             <span className="text-sm lg:text-lg font-bold text-slate-900 dark:text-white">{plan.users}</span>
                         </div>
                     </motion.div>
@@ -70,13 +93,20 @@ const AdminSubscriptionsPage = () => {
             {/* Transactions Table */}
             <div className="bg-white dark:bg-slate-900/50 rounded-[32px] lg:rounded-[48px] border border-slate-100 dark:border-slate-800/50 shadow-sm overflow-hidden flex flex-col flex-1">
                 <div className="p-4 lg:p-10 border-b border-slate-50 dark:border-slate-800/50 flex flex-col lg:flex-row justify-between items-center gap-6">
-                    <h2 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white pl-2 leading-none">Транзакции</h2>
+                    <h2 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white pl-2 leading-none">Transactions</h2>
                     <div className="flex gap-2 w-full lg:w-auto">
                         <div className="relative flex-1 lg:w-72 leading-none group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                            <input type="text" placeholder="Поиск..." className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950/30 border-none rounded-2xl text-[12px] font-medium outline-none focus:ring-2 ring-indigo-500/10 shadow-inner" />
+                            <input
+                                type="text"
+                                placeholder="Search transactions..."
+                                aria-label="Search transactions"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950/30 border-none rounded-2xl text-[12px] font-medium outline-none focus:ring-2 ring-indigo-500/10 shadow-inner"
+                            />
                         </div>
-                        <button className="p-2.5 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-indigo-500 transition-all font-black leading-none"><Filter size={18} /></button>
+                        <button aria-label="Filter transactions" className="p-2.5 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-indigo-500 transition-all font-black leading-none"><Filter size={18} /></button>
                     </div>
                 </div>
 
@@ -84,11 +114,11 @@ const AdminSubscriptionsPage = () => {
                     <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-900/50">
-                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest pl-10 lg:pl-12">Плательщик</th>
-                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Тариф</th>
-                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Дата</th>
-                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Сумма</th>
-                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Статус</th>
+                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest pl-10 lg:pl-12">Payer</th>
+                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Plan</th>
+                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Date</th>
+                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Amount</th>
+                                <th className="px-6 py-4 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">

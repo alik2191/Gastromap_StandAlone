@@ -97,11 +97,11 @@ export function BottomNav() {
                                                     />
                                                 )}
                                                 <motion.div
-                                                    animate={item.label === 'GastroGuide' && !isActive ? {
+                                                    animate={item.path === '/ai-guide' && !isActive ? {
                                                         opacity: [0.4, 1, 0.4],
                                                         scale: [0.95, 1.05, 0.95]
                                                     } : {}}
-                                                    transition={item.label === 'GastroGuide' ? {
+                                                    transition={item.path === '/ai-guide' ? {
                                                         duration: 2,
                                                         repeat: Infinity,
                                                         ease: "easeInOut"
@@ -111,7 +111,7 @@ export function BottomNav() {
                                                         "transition-transform duration-300",
                                                         isActive && "scale-110",
                                                         "h-5 w-5",
-                                                        item.label === 'GastroGuide' && !isActive && "text-blue-400"
+                                                        item.path === '/ai-guide' && !isActive && "text-blue-400"
                                                     )} />
                                                 </motion.div>
                                             </div>

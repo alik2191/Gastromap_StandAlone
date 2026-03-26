@@ -156,7 +156,7 @@ const LocationHierarchyExplorer = ({ className }) => {
     }
 
     return (
-        <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/50 rounded-[32px] p-2 lg:p-6 shadow-sm flex flex-col h-auto w-full relative transition-all", className, level === 'details' && "lg:col-span-3")}>
+        <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/50 rounded-[32px] p-2 lg:p-6 shadow-sm flex flex-col min-h-[460px] w-full relative transition-all", className, level === 'details' && "lg:col-span-3")}>
             <div className="flex items-center justify-between mb-4 lg:mb-6 px-1 shrink-0">
                 <div className="flex items-center gap-3">
                     {level !== 'countries' ? (

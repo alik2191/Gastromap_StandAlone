@@ -106,6 +106,7 @@ export function ChatInterface({
 
             {/* Messages */}
             <div
+                data-lenis-prevent
                 className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-4 relative ${transparent ? 'pb-32' : ''} ${contentClassName}`}
                 ref={scrollRef}
             >

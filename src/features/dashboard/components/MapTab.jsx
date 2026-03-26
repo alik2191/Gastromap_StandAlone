@@ -117,6 +117,19 @@ function clusterLocations(locations, zoom) {
     }))
 }
 
+// ─── Auto-center map whenever location set changes ────────────────────────
+function MapAutoCenter({ locations }) {
+    const map = useMap()
+    useEffect(() => {
+        const valid = locations.filter(l => l.coordinates?.lat && l.coordinates?.lng)
+        if (!valid.length) return
+        const lat = valid.reduce((s, l) => s + l.coordinates.lat, 0) / valid.length
+        const lng = valid.reduce((s, l) => s + l.coordinates.lng, 0) / valid.length
+        map.setView([lat, lng], map.getZoom(), { animate: true, duration: 0.8 })
+    }, [map, locations])
+    return null
+}
+
 // ─── Map helpers ──────────────────────────────────────────────────────────
 const MapUpdater = ({ theme }) => {
     const map = useMap()
@@ -197,6 +210,16 @@ const MapTab = ({ activeFilter = 'All' }) => {
         ? storeFiltered
         : storeFiltered.filter((loc) => loc.category === activeFilter)
 
+    // Compute initial center from locations (fallback: central Europe)
+    const initialCenter = useMemo(() => {
+        const valid = displayLocations.filter(l => l.coordinates?.lat && l.coordinates?.lng)
+        if (!valid.length) return [51.505, 19.0]
+        return [
+            valid.reduce((s, l) => s + l.coordinates.lat, 0) / valid.length,
+            valid.reduce((s, l) => s + l.coordinates.lng, 0) / valid.length,
+        ]
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps — intentionally run once on mount
+
     const clusters = useMemo(
         () => clusterLocations(displayLocations, zoom),
         [displayLocations, zoom]
@@ -244,8 +267,8 @@ const MapTab = ({ activeFilter = 'All' }) => {
             </div>
 
             <MapContainer
-                center={[50.0614, 19.9366]}
-                zoom={14}
+                center={initialCenter}
+                zoom={13}
                 scrollWheelZoom
                 zoomControl={false}
                 style={{ height: '100%', width: '100%' }}
@@ -258,6 +281,7 @@ const MapTab = ({ activeFilter = 'All' }) => {
                 <MapUpdater theme={theme} />
                 <LocationController userPos={userPos} trigger={locateTrigger} />
                 <ZoomTracker onZoomChange={setZoom} />
+                <MapAutoCenter locations={displayLocations} />
 
                 {userPos && (
                     <Marker position={userPos} icon={userIcon}>

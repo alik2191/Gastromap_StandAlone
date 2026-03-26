@@ -72,6 +72,7 @@ export function UniversalHeader() {
                                 {isInstallable && (
                                     <button
                                         onClick={installPWA}
+                                        aria-label="Download GastroMap app"
                                         className={`flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md transition-all border group bg-blue-600 border-blue-500/50 text-white shadow-[0_4px_15px_rgba(37,99,235,0.3)] hover:scale-105 active:scale-95`}
                                     >
                                         <Download size={16} className="group-hover:bounce" />
@@ -83,14 +84,14 @@ export function UniversalHeader() {
                                         <ShieldCheck size={18} className="text-blue-500" />
                                     </Link>
                                 )}
-                                <button onClick={toggleTheme} className={`p-2 rounded-full backdrop-blur-md transition-all border ${glassStyle}`}>
+                                <button onClick={toggleTheme} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} className={`p-2 rounded-full backdrop-blur-md transition-all border ${glassStyle}`}>
                                     {isDark ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-gray-600" />}
                                 </button>
                                 <Link to="/dashboard/add-place" className="flex items-center gap-2 px-3 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs md:text-sm shadow-md shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95 border border-indigo-500/50">
                                     <PlusCircle size={16} />
                                     <span className="hidden sm:inline">Add Place</span>
                                 </Link>
-                                <Link to="/profile" className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs md:text-sm shadow-md border-2 border-white/20 hover:scale-110 transition-transform">
+                                <Link to="/profile" aria-label={`Profile for ${user.name}`} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs md:text-sm shadow-md border-2 border-white/20 hover:scale-110 transition-transform">
                                     {user.name.charAt(0)}
                                 </Link>
                             </div>
@@ -117,6 +118,7 @@ export function UniversalHeader() {
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => navigate('/dashboard')}
+                                    aria-label="Back to dashboard"
                                     className="relative flex items-center gap-2 pr-8 group pointer-events-auto h-full"
                                 >
                                     {/* Natural Glow - No clipping */}
@@ -131,6 +133,7 @@ export function UniversalHeader() {
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => navigate('/saved')}
+                                    aria-label="Go to saved locations"
                                     className="relative flex items-center gap-2 pl-8 group pointer-events-auto text-right h-full"
                                 >
                                     {/* Natural Glow - No clipping */}

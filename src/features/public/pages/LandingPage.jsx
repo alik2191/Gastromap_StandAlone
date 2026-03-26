@@ -104,7 +104,7 @@ const BentoHero = () => {
                                 crossOrigin="anonymous"
                                 loading="eager"
                                 decoding="async"
-                                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-[2s] ease-out"
+                                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform [transition-duration:2000ms] ease-out"
                             />
                             <div className="absolute bottom-6 left-6 right-6 z-10 flex items-end justify-between">
                                 <div className="bg-white/20 backdrop-blur-2xl border border-white/20 px-5 py-3 rounded-[24px] text-white/90">
@@ -339,7 +339,7 @@ const CollectionPreview = () => (
                             src={item.img}
                             alt={item.title}
                             loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105 opacity-90"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform [transition-duration:2000ms] ease-out group-hover:scale-105 opacity-90"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 text-white">
