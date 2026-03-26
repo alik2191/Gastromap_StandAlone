@@ -544,14 +544,7 @@ export async function analyzeQueryStream(message, context = {}, onChunk) {
             if (err.status === 401) throw new ApiError('Invalid OpenRouter API key.', 401, 'AUTH_ERROR')
             console.warn('[GastroAI] OpenRouter streaming error, falling back:', err.message)
         }
-
-        const data = await response.json()
-        return data.data || []
-    } catch (err) {
-        console.warn('[GastroAI] Failed to fetch OpenRouter models:', err.message)
-        return config.ai.freeModels.concat(config.ai.premiumModels)
     }
-}
 
     // Fallback: single-shot local engine
     return analyzeQuery(message, context)
