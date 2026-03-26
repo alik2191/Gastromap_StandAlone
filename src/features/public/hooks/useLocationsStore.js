@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { MOCK_LOCATIONS } from '@/mocks/locations'
+import { getLocations } from '@/shared/api/locations.api'
 
 /**
  * useLocationsStore — client-side filter state for the locations list.
@@ -98,6 +99,7 @@ function applyAllFilters(locations, filters) {
 export const useLocationsStore = create((set, get) => ({
     locations: MOCK_LOCATIONS,
     filteredLocations: MOCK_LOCATIONS,
+    isLoading: false,
 
     ...DEFAULT_FILTERS,
 
@@ -189,4 +191,24 @@ export const useLocationsStore = create((set, get) => ({
             const locations = state.locations.filter(loc => loc.id !== id)
             return { locations, filteredLocations: applyAllFilters(locations, state) }
         }),
+
+    /** Load all locations from Supabase (or mocks) and populate the store. */
+    initialize: async () => {
+        if (get().isLoading) return
+        set({ isLoading: true })
+        try {
+            const { data } = await getLocations({ limit: 500 })
+            if (data?.length) {
+                set((state) => ({
+                    locations: data,
+                    filteredLocations: applyAllFilters(data, state),
+                    isLoading: false,
+                }))
+            } else {
+                set({ isLoading: false })
+            }
+        } catch {
+            set({ isLoading: false })
+        }
+    },
 }))

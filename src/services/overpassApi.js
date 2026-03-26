@@ -135,12 +135,14 @@ function transformElement(element) {
 
     const description =
         tags.description ??
-        [
-            cuisine ? `${cuisine} cuisine` : null,
-            category !== 'Restaurant' ? category : null,
-            addrCity ? `in ${addrCity}` : null,
-        ].filter(Boolean).join(', ') ||
-        `A ${category.toLowerCase()} in the city.`
+        (
+            [
+                cuisine ? `${cuisine} cuisine` : null,
+                category !== 'Restaurant' ? category : null,
+                addrCity ? `in ${addrCity}` : null,
+            ].filter(Boolean).join(', ') ||
+            `A ${category.toLowerCase()} in the city.`
+        )
 
     return {
         id,
