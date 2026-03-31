@@ -1,124 +1,151 @@
-# 🍽 GastroMap V2 - Premium Discovery App
+# 🍽️ GastroMap V2 - StandAlone
 
-GastroMap is a modern, premium web application for discovering culinary spots. It features a "Glassmorphism" design aesthetic, smooth animations (Framer Motion), and a mobile-first approach.
-
-## 🚀 Current Status & Features
-
-The application is in active development (V2 Skeleton). The core user flows are implemented with mock data for UI validation.
-
-### ✅ Implemented Modules
-
-1.  **Dashboard (`/dashboard`)**
-    *   **Mobile**: Horizontal scrollable sliders for "Countries", "Recommended", and "Trending".
-    *   **Desktop**: Grid layouts with hero section and greetings.
-    *   **Search**: Integrated search bar with glassmorphism UI.
-    *   **Greeting System**: Time-aware user greeting.
-
-2.  **Map (`/map tab`)**
-    *   **Technology**: React Leaflet + OpenStreetMap.
-    *   **Features**:
-        *   Custom markers (dining, cafe, bar icons).
-        *   **Geolocation**: "Locate Me" button with auto-fly to user position.
-        *   **User Marker**: Pulsing blue dot indicator.
-        *   **Theme Aware**: Dark/Light mode map tiles.
-
-3.  **Location Discovery (`/explore`)**
-    *   **Mobile Sheet**: Draggable bottom sheet (Framer Motion) for switching between Map and List views.
-    *   **Filters**: Glassmorphism modal for filtering by Price, Rating, Category (Portal-based).
-    *   **Cards**: Premium "Compact" cards with optimized typography (`text-sm`, `text-xl`).
-
-4.  **Location Details (`/location/:id`)**
-    *   **Hero**: Immersive header image with gradient overlays.
-    *   **Info Grid**: Bento-style grid for gallery and operational info.
-    *   **Typography**: Optimized specifically for mobile readability (avoiding large fonts).
-    *   **Reviews**: Rating bars and user reviews list.
-
-5.  **Profile (`/profile`)**
-    *   **Structure**: iOS-style settings groups (Account, Support, Legal).
-    *   **Feedback**: Modal for sending feedback.
-    *   **GDPR**: "Request Data Deletion" option included.
-    *   **Stats**: Compact 2x2 grid for user achievements.
-
-6.  **Navigation**
-    *   **Bottom Bar**: Floating glass dock with active state animations.
-    *   **Page Transitions**: Smooth fade-in/slide-up effects on route changes.
+**AI-powered restaurant discovery platform with Knowledge Graph, personalized recommendations, and community-driven contributions.**
 
 ---
 
-## 🛠 Tech Stack
+## 🚀 Quick Start
 
-*   **Core**: React 18, Vite.
-*   **Styling**: Tailwind CSS (Native).
-*   **Animations**: Framer Motion (page transitions, bottom sheets, gestures).
-*   **Icons**: Lucide React.
-*   **Maps**: React Leaflet, Leaflet CSS.
-*   **State Management**: Zustand (Auth, Locations).
-*   **Router**: React Router DOM v6.
+### 1. Install & Setup
 
----
-
-## 📂 Project Structure (Feature-Based)
-
-We follow a feature-sliced architecture to keep the codebase scalable.
-
+```bash
+git clone https://github.com/alik2191/Gastromap_StandAlone.git
+cd Gastromap_StandAlone
+npm install
+cp .env.example .env
 ```
-src/
-├── app/                 # Global app configuration
-├── assets/              # Static assets (images, global css)
-├── components/          # Shared UI components
-│   ├── ui/              # Buttons, Inputs, transitions (PageTransition)
-│   └── layout/          # Navigation (BottomNav)
-├── features/            # MAIN BUSINESS LOGIC
-│   ├── auth/            # Authentication (Login, Register)
-│   ├── dashboard/       # Main user views (Dashboard, Map, Profile)
-│   │   ├── components/  # MapTab, FilterModal
-│   │   └── pages/       # DashboardPage, ProfilePage
-│   ├── public/          # Public & Discovery views
-│   │   ├── components/  # LocationCard
-│   │   └── pages/       # LocationsPage, LocationDetailsPage
-│   └── admin/           # Admin panel (WIP)
-├── hooks/               # Global hooks (useTheme)
-└── lib/                 # Utilities
+
+### 2. Setup Database
+
+Run migrations in Supabase SQL Editor:
+1. `supabase/migrations/20260331_knowledge_graph_ontology.sql`
+2. `supabase/migrations/20260331_user_preferences_learning.sql`
+
+### 3. Run
+
+```bash
+npm run dev
 ```
 
 ---
 
-## 🎨 Design System: "Premium Mobile"
+## 📦 Features
 
-We adhere to strict design rules to maintain a premium feel:
+### 🧠 AI-Powered
+- **GastroGuide AI** - Personalized restaurant recommendations
+- **User Preference Learning** - Remembers likes/dislikes from chat
+- **Knowledge Graph** - Cuisines, dishes, ingredients, allergens ontology
+- **Intent Detection** - Understands context
 
-1.  **Typography**:
-    *   **Headings**: `text-xl` or `text-2xl` font-black. Avoid `text-4xl+` on mobile.
-    *   **Body**: `text-sm` or `text-[13px]` font-medium/bold.
-    *   **Subtext**: `text-[11px]` or `text-[10px]` uppercase tracking-widest.
+### 👥 Community
+- **User Submissions** - Anyone can suggest a restaurant
+- **Insider Tip & Must Try** - Unique recommendations
+- **Top-10 Contributors** - Lifetime free subscription
+- **Hybrid Moderation** - AI + human review
 
-2.  **Colors & Theming**:
-    *   **Light Mode**: White backgrounds, blue accents (`text-blue-600`), soft gray borders.
-    *   **Dark Mode**: Deep gray/black backgrounds (`bg-[#1a1c24]`), white text, subtle semi-transparent borders (`border-white/10`).
+### 🔍 Verification
+- **Google Places Integration** - Auto-verify hours, status
+- **Brave Search** - Fallback (2000 free queries/month)
+- **AI Agent** - Detects changes, suggests updates
 
-3.  **Glassmorphism**:
-    *   Used on: Modals, Bottom Nav, Floating Buttons, Cards.
-    *   Style: `backdrop-blur-md`, `bg-white/90` (or `bg-black/50`), thin borders.
-
-4.  **Interactions**:
-    *   **Active Scale**: Buttons scale down (`active:scale-95`) on press.
-    *   **Haptic Visuals**: Ripples or pulses (e.g., user location marker).
-
----
-
-## 📝 Recent Changelog
-
-*   **Refactor**: Unified typography across `DashboardPage`, `LocationsPage`, and `LocationDetailsPage` to match "Compact Premium" standards.
-*   **Feature**: Added Geolocation support in `MapTab`.
-    *   "Locate Me" button positioned centrally on mobile (`right-4 center`).
-    *   Pulsing user marker.
-*   **Feature**: Redesigned `ProfilePage` to match international standards (GDPR, Feedback modal).
-*   **Fix**: Resolved z-index conflicts with filters and map buttons.
+### ⚙️ Admin Panel
+- **AI Settings** - Configure 3 AI agents
+- **Model Selection** - Choose LLM for each agent
+- **Moderation Queue** - Review submissions
+- **Analytics** - Track AI usage
 
 ---
 
-## 🔮 Next Steps
+## 🗄️ Database Schema
 
-*   [ ] connect Supabase for real data.
-*   [ ] Implement Admin Panel logic.
-*   [ ] Finalize Reservation flow (currently placeholder).
+### Core Tables
+- **locations** - Restaurants/cafes/bars
+- **cuisines** - World cuisines ontology
+- **dishes** - Dishes with ingredients
+- **ingredients** - Ingredient database
+- **allergens** - Allergen information
+- **vibes** - Atmosphere/occasion tags
+
+### AI & Learning
+- **user_preferences** - User preference profile
+- **chat_sessions** - GastroGuide chat history
+- **chat_messages** - Individual messages
+- **contributors** - Leaderboard (Top-10)
+- **user_submissions** - User-suggested locations
+- **ai_agent_configs** - Agent configurations
+
+---
+
+## 🤖 AI Agents
+
+### 1. Administrator AI
+- **Model:** Claude 3.7 Sonnet
+- **Role:** Help admin manage the app
+- **Interface:** Telegram + Admin Dashboard
+
+### 2. GastroGuide AI
+- **Model:** Llama 3.3 70B (free)
+- **Role:** User-facing restaurant guide
+- **Features:** Personalization, learning
+
+### 3. Verification Agent
+- **Model:** Llama 3.3 70B (free)
+- **Role:** Verify location data
+- **Sources:** Google Places + Brave Search
+
+### 4. Moderation AI
+- **Model:** Qwen 2.5 Coder (free)
+- **Role:** Pre-moderate submissions
+
+---
+
+## 🚀 Deployment
+
+### Vercel
+
+1. Connect repo to Vercel
+2. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_OPENROUTER_API_KEY`
+3. Deploy!
+
+See **[docs/DEPLOY_GUIDE.md](./docs/DEPLOY_GUIDE.md)** for full instructions.
+
+---
+
+## 📊 Tech Stack
+
+- **Frontend:** React 18, Vite, Tailwind CSS, Zustand
+- **Backend:** Supabase (PostgreSQL + pgvector)
+- **AI:** OpenRouter (350+ LLM models)
+- **Maps:** Leaflet, OpenStreetMap
+- **i18n:** EN, PL, RU, UA
+
+---
+
+## 📈 Roadmap
+
+- ✅ Knowledge Graph ontology
+- ✅ User preference learning
+- ✅ Contributor system
+- 🔄 Mobile app (React Native)
+- 🔄 AR dish visualization
+- 🔄 Voice search
+
+---
+
+## 👥 Team
+
+- **Alik** - Founder & Developer
+- **Gas AI** - AI Agent & Automation
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+**Built with ❤️ for food lovers**
