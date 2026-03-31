@@ -448,3 +448,136 @@ A: Да! Измени `SYSTEM_PROMPT` в коде функции.
 **Created by:** Gas AI  
 **Date:** 2026-03-31  
 **Status:** ✅ **READY TO DEPLOY**
+
+---
+
+## 📊 АРХИТЕКТУРА
+
+### Схема работы
+
+```
+┌─────────────┐
+│   User      │
+│  Telegram   │
+└──────┬──────┘
+       │ Message
+       ↓
+┌─────────────────────────┐
+│  Telegram Bot API       │
+│  (api.telegram.org)     │
+└──────┬──────────────────┘
+       │ Webhook POST
+       ↓
+┌─────────────────────────┐
+│  Backend Function       │
+│  (telegramWebhook.ts)   │
+│  - Parse message        │
+│  - Build context        │
+│  - Call OpenRouter      │
+└──────┬──────────────────┘
+       │ HTTP POST
+       ↓
+┌─────────────────────────┐
+│  OpenRouter API         │
+│  (openrouter.ai)        │
+│  - AI Model (Step 3.5)  │
+│  - Generate response    │
+└──────┬──────────────────┘
+       │ JSON Response
+       ↓
+┌─────────────────────────┐
+│  Backend Function       │
+│  (saves context)        │
+└──────┬──────────────────┘
+       │ sendMessage()
+       ↓
+┌─────────────────────────┐
+│  Telegram Bot API       │
+└──────┬──────────────────┘
+       │ Message
+       ↓
+┌─────────────┐
+│   User      │
+│  Telegram   │
+└─────────────┘
+```
+
+### Flow Diagram
+
+```
+User: "Где лучший итальянский ресторан?"
+  │
+  ├─→ Telegram API
+  │    └─→ Webhook → Backend Function
+  │         ├─→ Save to context (Map)
+  │         ├─→ Build messages array
+  │         │    [system, user history...]
+  │         └─→ OpenRouter API
+  │              └─→ AI Model (Step 3.5 Flash)
+  │                   └─→ Generate response
+  │                        └─→ Return text
+  │
+  └─← Backend Function
+       ├─→ Save AI response to context
+       └─→ Telegram API
+            └─→ Send message to User
+```
+
+### Context Management
+
+```
+┌──────────────────────────────────────┐
+│  conversations (Map<number, Context>)│
+├──────────────────────────────────────┤
+│  userId: 12345                       │
+│  ├─ messages: [                      │
+│  │   {role: "user", content: "..."}, │
+│  │   {role: "assistant", content: ".."},
+│  │   ... (max 8)                     │
+│  └─ lastActive: timestamp            │
+└──────────────────────────────────────┘
+```
+
+---
+
+## 🔐 БЕЗОПАСНОСТЬ
+
+### Best Practices
+
+1. **Храни токены в секрете:**
+   ```bash
+   # Не коммить .env в git
+   echo ".env" >> .gitignore
+   ```
+
+2. **Валидируй входящие запросы:**
+   ```typescript
+   // Проверь что запрос от Telegram
+   const secretToken = process.env.TELEGRAM_SECRET_TOKEN
+   if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== secretToken) {
+     return new Response('Unauthorized', { status: 401 })
+   }
+   ```
+
+3. **Rate limiting:**
+   ```typescript
+   const userRequests = new Map<number, number[]>()
+   
+   function checkRateLimit(userId: number): boolean {
+     const now = Date.now()
+     const requests = userRequests.get(userId) || []
+     const recent = requests.filter(t => now - t < 60000)
+     
+     if (recent.length >= 10) return false
+     recent.push(now)
+     userRequests.set(userId, recent)
+     return true
+   }
+   ```
+
+4. **Санитизация ввода:**
+   ```typescript
+   const cleanText = text?.replace(/[<>]/g, '') || ''
+   ```
+
+---
