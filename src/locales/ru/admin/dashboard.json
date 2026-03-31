@@ -1,0 +1,16 @@
+{
+    "admin": {
+        "dashboard": {
+            "title": "Панель управления",
+            "welcome": "Добро пожаловать, {{name}}!",
+            "stats": {
+                "total_users": "Всего пользователей",
+                "active_users": "Активных пользователей",
+                "total_locations": "Всего заведений",
+                "total_reviews": "Всего отзывов"
+            },
+            "quick_actions": "Быстрые действия",
+            "recent_activity": "Последняя активность"
+        }
+    }
+}

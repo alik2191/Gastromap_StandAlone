@@ -1,0 +1,18 @@
+{
+    "explore": {
+        "discover": "Odkrywaj",
+        "places_found": "Znalezione miejsca: {{count}}",
+        "search_in": "Szukaj w {{city}}…",
+        "no_results": "Brak wyników",
+        "no_results_for": "Brak wyników dla \"{{query}}\"",
+        "clear_filters": "Wyczyść filtry",
+        "sort": {
+            "title": "Sortuj według",
+            "top_rated": "Najwyżej oceniane",
+            "price_asc": "Cena: od najniższej",
+            "price_desc": "Cena: od najwyższej",
+            "a_to_z": "Nazwa: A → Z",
+            "z_to_a": "Nazwa: Z → A"
+        }
+    }
+}

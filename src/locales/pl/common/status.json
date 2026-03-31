@@ -1,0 +1,13 @@
+{
+    "status": {
+        "loading": "Ładowanie...",
+        "saving": "Zapisywanie...",
+        "deleting": "Usuwanie...",
+        "success": "Sukces",
+        "error": "Błąd",
+        "no_data": "Brak danych",
+        "no_results": "Brak wyników",
+        "try_again": "Spróbuj ponownie",
+        "retry": "Ponów"
+    }
+}

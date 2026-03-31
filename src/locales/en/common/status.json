@@ -1,0 +1,13 @@
+{
+    "status": {
+        "loading": "Loading...",
+        "saving": "Saving...",
+        "deleting": "Deleting...",
+        "success": "Success",
+        "error": "Error",
+        "no_data": "No data available",
+        "no_results": "No results found",
+        "try_again": "Try again",
+        "retry": "Retry"
+    }
+}

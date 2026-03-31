@@ -1,0 +1,17 @@
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import AdminSubscriptionsPage from '../pages/AdminSubscriptionsPage'
+
+describe('AdminSubscriptionsPage', () => {
+    it('renders subscriptions page', () => {
+        render(<AdminSubscriptionsPage />)
+        expect(screen.getByRole('main')).toBeInTheDocument()
+    })
+
+    it('has pricing section', () => {
+        render(<AdminSubscriptionsPage />)
+        // Look for pricing elements
+        const pricingElements = document.querySelectorAll('[class*="price"], [class*="plan"]')
+        expect(pricingElements.length).toBeGreaterThanOrEqual(1)
+    })
+})

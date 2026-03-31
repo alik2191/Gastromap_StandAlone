@@ -1,0 +1,18 @@
+{
+    "reviews": {
+        "based_on": "Na podstawie {{count}} opinii",
+        "write_review": "Napisz swoją opinię",
+        "rate_experience": "Oceń swoje doświadczenie",
+        "submit": "Wyślij opinię",
+        "no_reviews": "Brak opinii. Bądź pierwszy!",
+        "helpful": "{{count}} osób uznało to za pomocne",
+        "report": "Zgłoś opinię",
+        "rating": {
+            "excellent": "Wyśmienite",
+            "very_good": "Bardzo dobre",
+            "average": "Średnie",
+            "poor": "Słabe",
+            "terrible": "Okropne"
+        }
+    }
+}

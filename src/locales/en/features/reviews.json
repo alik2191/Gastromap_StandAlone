@@ -1,0 +1,18 @@
+{
+    "reviews": {
+        "based_on": "Based on {{count}} reviews",
+        "write_review": "Write your review",
+        "rate_experience": "Rate your experience",
+        "submit": "Submit Review",
+        "no_reviews": "No reviews yet. Be the first!",
+        "helpful": "{{count}} people found this helpful",
+        "report": "Report review",
+        "rating": {
+            "excellent": "Excellent",
+            "very_good": "Very Good",
+            "average": "Average",
+            "poor": "Poor",
+            "terrible": "Terrible"
+        }
+    }
+}

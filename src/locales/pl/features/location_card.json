@@ -1,0 +1,22 @@
+{
+    "location": {
+        "open_now": "Otwarte teraz",
+        "closed": "Zamknięte",
+        "closing_soon": "Wkrótce zamykane",
+        "save": "Zapisz",
+        "saved": "Zapisane",
+        "visited": "Odwiedzone",
+        "mark_visited": "Oznacz jako odwiedzone",
+        "overview": "Przegląd",
+        "menu": "Menu",
+        "reviews": "Opinie",
+        "photos": "Zdjęcia",
+        "notes": "Notatki",
+        "view_details": "Zobacz szczegóły →",
+        "book_table": "Zarezerwuj stolik",
+        "get_directions": "Jak dojechać",
+        "call": "Zadzwoń",
+        "website": "Strona",
+        "share": "Udostępnij"
+    }
+}

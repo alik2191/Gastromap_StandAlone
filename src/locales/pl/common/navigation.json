@@ -1,0 +1,12 @@
+{
+    "nav": {
+        "overview": "Przegląd",
+        "explore": "Odkrywaj",
+        "ai_guide": "GastroGuide",
+        "saved": "Zapisane",
+        "visited": "Odwiedzone",
+        "settings": "Ustawienia",
+        "profile": "Profil",
+        "logout": "Wyloguj"
+    }
+}

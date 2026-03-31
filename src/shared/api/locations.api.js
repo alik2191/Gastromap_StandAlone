@@ -1,18 +1,26 @@
 /**
- * Locations API — Supabase backend with mock fallback.
+ * Locations API — Supabase backend with auto-translation.
  *
  * Uses Supabase when VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY are set,
  * otherwise falls back to mock data so development works offline.
+ * 
+ * Auto-translation: When creating/updating locations, data is automatically
+ * translated to all supported languages (EN, PL, UK, RU).
  */
 
 import { MOCK_LOCATIONS, MOCK_CATEGORIES } from '@/mocks/locations'
 import { supabase, ApiError } from './client'
 import { config } from '@/shared/config/env'
+import { 
+    processLocationTranslations, 
+    saveTranslations,
+    getTranslations 
+} from './translation.api'
 
 const USE_SUPABASE = config.supabase.isConfigured
+const AUTO_TRANSLATE = config.ai.isOpenRouterConfigured
 
 // ─── Shape normaliser ──────────────────────────────────────────────────────
-// Supabase uses snake_case flat columns; components expect the mock shape.
 function normalise(row) {
     return {
         id: row.id,
@@ -52,11 +60,6 @@ function normalise(row) {
 
 // ─── Read ──────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all locations, optionally filtered.
- * @param {Object} [filters]
- * @returns {Promise<{ data: Array, total: number, hasMore: boolean }>}
- */
 export async function getLocations(filters = {}) {
     if (!USE_SUPABASE) return _mockGetLocations(filters)
 
@@ -82,7 +85,6 @@ export async function getLocations(filters = {}) {
 
     const { data, error, count } = await q
 
-    // Gracefully fall back to mock data if DB query fails
     if (error) {
         console.warn('[locations.api] Supabase query failed, using mocks:', error.message)
         return _mockGetLocations(filters)
@@ -95,74 +97,53 @@ export async function getLocations(filters = {}) {
     }
 }
 
-/**
- * Fetch a single location by ID.
- * @param {string} id
- * @returns {Promise<Object>}
- */
-export async function getLocationById(id) {
-    if (!USE_SUPABASE) return _mockGetById(id)
+export async function getLocation(id) {
+    if (!USE_SUPABASE) return _mockGetLocation(id)
 
     const { data, error } = await supabase
         .from('locations')
         .select('*')
         .eq('id', id)
+        .eq('status', 'active')
         .single()
 
-    if (error || !data) throw new ApiError(`Location "${id}" not found`, 404, 'LOCATION_NOT_FOUND')
+    if (error) {
+        console.warn('[locations.api] Supabase query failed, using mocks:', error.message)
+        return _mockGetLocation(id)
+    }
+
     return normalise(data)
 }
 
-/**
- * Fetch all distinct categories.
- * @returns {Promise<string[]>}
- */
-export async function getCategories() {
-    if (!USE_SUPABASE) return MOCK_CATEGORIES
-
-    const { data, error } = await supabase
-        .from('locations')
-        .select('category')
-        .eq('status', 'active')
-        .not('category', 'is', null)
-
-    if (error) return MOCK_CATEGORIES
-    const unique = [...new Set((data ?? []).map(r => r.category).filter(Boolean))].sort()
-    return unique.length ? unique : MOCK_CATEGORIES
-}
+// ─── Create with Auto-Translation ──────────────────────────────────────────
 
 /**
- * Fetch locations near a coordinate (Haversine, client-side for now).
- * @param {{ lat: number, lng: number }} coords
- * @param {number} radiusKm
- * @returns {Promise<Array>}
+ * Create location with automatic translation
+ * @param {Object} data - Location data
+ * @param {boolean} enableTranslation - Enable auto-translation (default: true if AI configured)
+ * @returns {Promise<Object>} Created location with translations
  */
-export async function getLocationsNearby(coords, radiusKm = 2) {
-    // Fetch all then filter — replace with PostGIS when available
-    const { data } = await getLocations({ limit: 500 })
-    const toRad = d => (d * Math.PI) / 180
-    const haversine = (a, b) => {
-        const R = 6371
-        const dLat = toRad(b.lat - a.lat)
-        const dLng = toRad(b.lng - a.lng)
-        const x = Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
-        return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
-    }
-    return data.filter(loc => haversine(coords, loc.coordinates) <= radiusKm)
-}
-
-// ─── Write (Admin / Authenticated) ────────────────────────────────────────
-
-/**
- * Create a new location.
- * @param {Object} data
- * @returns {Promise<Object>}
- */
-export async function createLocation(data) {
+export async function createLocation(data, enableTranslation = AUTO_TRANSLATE) {
     if (!USE_SUPABASE) return _mockCreate(data)
 
-    const row = _toRow(data)
+    let locationData = { ...data }
+    let translations = null
+    
+    // Auto-translate before saving
+    if (enableTranslation && config.ai.isOpenRouterConfigured) {
+        console.log('[locations.api] Auto-translating location...')
+        
+        try {
+            const result = await processLocationTranslations(data, true)
+            locationData = result
+            translations = result.translations
+        } catch (error) {
+            console.error('[locations.api] Auto-translation failed, saving without translations:', error)
+            // Continue without translations (non-blocking)
+        }
+    }
+
+    const row = _toRow(locationData)
     const { data: created, error } = await supabase
         .from('locations')
         .insert(row)
@@ -170,20 +151,60 @@ export async function createLocation(data) {
         .single()
 
     if (error) throw new ApiError(error.message, 500, error.code)
+    
+    // Save translations separately
+    if (translations) {
+        try {
+            await saveTranslations(created.id, translations)
+        } catch (error) {
+            console.error('[locations.api] Failed to save translations:', error)
+            // Non-blocking, continue
+        }
+    }
+    
     return normalise(created)
 }
 
+// ─── Update with Auto-Translation ──────────────────────────────────────────
+
 /**
- * Update an existing location.
- * @param {string} id
- * @param {Partial<Object>} updates
- * @returns {Promise<Object>}
+ * Update location with automatic translation
+ * @param {string} id - Location ID
+ * @param {Object} updates - Updated fields
+ * @param {boolean} enableTranslation - Enable auto-translation (default: true if AI configured)
+ * @returns {Promise<Object>} Updated location
  */
-export async function updateLocation(id, updates) {
+export async function updateLocation(id, updates, enableTranslation = AUTO_TRANSLATE) {
     if (!USE_SUPABASE) return _mockUpdate(id, updates)
 
-    const row = _toRow(updates)
-    const { data, error } = await supabase
+    let locationData = { ...updates }
+    let translations = null
+    
+    // Auto-translate if translatable fields changed
+    if (enableTranslation && config.ai.isOpenRouterConfigured) {
+        const translatableFields = ['title', 'description', 'address', 'insider_tip', 'what_to_try', 'ai_context']
+        const hasTranslatableField = translatableFields.some(field => updates[field] !== undefined)
+        
+        if (hasTranslatableField) {
+            console.log('[locations.api] Auto-translating updated fields...')
+            
+            try {
+                // Get current location first
+                const current = await getLocation(id)
+                const merged = { ...current, ...updates }
+                
+                const result = await processLocationTranslations(merged, true)
+                locationData = result
+                translations = result.translations
+            } catch (error) {
+                console.error('[locations.api] Auto-translation failed:', error)
+                // Continue without translations
+            }
+        }
+    }
+
+    const row = _toRow(locationData)
+    const { data: updated, error } = await supabase
         .from('locations')
         .update(row)
         .eq('id', id)
@@ -191,14 +212,21 @@ export async function updateLocation(id, updates) {
         .single()
 
     if (error) throw new ApiError(error.message, 500, error.code)
-    return normalise(data)
+    
+    // Update translations
+    if (translations) {
+        try {
+            await saveTranslations(updated.id, translations)
+        } catch (error) {
+            console.error('[locations.api] Failed to save translations:', error)
+        }
+    }
+    
+    return normalise(updated)
 }
 
-/**
- * Delete a location.
- * @param {string} id
- * @returns {Promise<void>}
- */
+// ─── Delete ────────────────────────────────────────────────────────────────
+
 export async function deleteLocation(id) {
     if (!USE_SUPABASE) return _mockDelete(id)
 
@@ -210,7 +238,41 @@ export async function deleteLocation(id) {
     if (error) throw new ApiError(error.message, 500, error.code)
 }
 
+// ─── Get with Translation ──────────────────────────────────────────────────
+
+/**
+ * Get location with translations for specific language
+ * @param {string} id - Location ID
+ * @param {string} lang - Language code (en, pl, uk, ru)
+ * @returns {Promise<Object>} Location with translated fields
+ */
+export async function getLocationTranslated(id, lang = 'en') {
+    if (!USE_SUPABASE) {
+        return _mockGetLocation(id)
+    }
+
+    // Get location
+    const location = await getLocation(id)
+    if (!location) return null
+
+    // Get translations
+    const translations = await getTranslations(id)
+    
+    if (translations && translations[lang]) {
+        // Merge translations with original data
+        return {
+            ...location,
+            ...translations[lang],
+            isTranslated: true,
+            translatedTo: lang
+        }
+    }
+    
+    return location
+}
+
 // ─── Shape converter (app → DB) ────────────────────────────────────────────
+
 function _toRow(d) {
     const row = {}
     if (d.title !== undefined)       row.title = d.title
@@ -218,7 +280,8 @@ function _toRow(d) {
     if (d.address !== undefined)     row.address = d.address
     if (d.city !== undefined)        row.city = d.city
     if (d.country !== undefined)     row.country = d.country
-    if (d.coordinates !== undefined) { row.lat = d.coordinates.lat; row.lng = d.coordinates.lng }
+    if (d.lat !== undefined)         row.lat = d.lat
+    if (d.lng !== undefined)         row.lng = d.lng
     if (d.category !== undefined)    row.category = d.category
     if (d.cuisine !== undefined)     row.cuisine = d.cuisine
     if (d.image !== undefined)       row.image = d.image
@@ -227,7 +290,6 @@ function _toRow(d) {
     if (d.priceLevel !== undefined)  row.price_level = d.priceLevel
     if (d.openingHours !== undefined) row.opening_hours = d.openingHours
     if (d.tags !== undefined)        row.tags = d.tags
-    if (d.special_labels !== undefined) row.special_labels = d.special_labels
     if (d.vibe !== undefined)        row.vibe = d.vibe
     if (d.features !== undefined)    row.features = d.features
     if (d.best_for !== undefined)    row.best_for = d.best_for
@@ -236,7 +298,7 @@ function _toRow(d) {
     if (d.has_outdoor_seating !== undefined) row.has_outdoor_seating = d.has_outdoor_seating
     if (d.reservations_required !== undefined) row.reservations_required = d.reservations_required
     if (d.michelin_stars !== undefined) row.michelin_stars = d.michelin_stars
-    if (d.michelin_bib !== undefined)   row.michelin_bib = d.michelin_bib
+    if (d.michelin_bib !== undefined) row.michelin_bib = d.michelin_bib
     if (d.insider_tip !== undefined) row.insider_tip = d.insider_tip
     if (d.what_to_try !== undefined) row.what_to_try = d.what_to_try
     if (d.ai_keywords !== undefined) row.ai_keywords = d.ai_keywords
@@ -246,48 +308,63 @@ function _toRow(d) {
 }
 
 // ─── Mock fallbacks ────────────────────────────────────────────────────────
+
 function _mockGetLocations(filters = {}) {
-    let results = [...MOCK_LOCATIONS]
-    const { category, query, priceLevel, minRating, vibe, limit, offset = 0 } = filters
-    if (category && category !== 'All') results = results.filter(l => l.category === category)
-    if (query) {
-        const q = query.toLowerCase()
-        results = results.filter(l =>
-            l.title.toLowerCase().includes(q) ||
-            l.description?.toLowerCase().includes(q) ||
-            l.cuisine?.toLowerCase().includes(q) ||
-            l.tags?.some(t => t.toLowerCase().includes(q))
-        )
+    let filtered = [...MOCK_LOCATIONS]
+    if (filters.category && filters.category !== 'All') {
+        filtered = filtered.filter(l => l.category === filters.category)
     }
-    if (priceLevel?.length) results = results.filter(l => priceLevel.includes(l.priceLevel))
-    if (minRating != null)  results = results.filter(l => l.rating >= minRating)
-    if (vibe?.length)       results = results.filter(l => vibe.some(v => l.vibe?.includes(v)))
-    const paginated = results.slice(offset, limit ? offset + limit : undefined)
-    return Promise.resolve({ data: paginated, total: results.length, hasMore: limit ? offset + limit < results.length : false })
+    if (filters.city) {
+        filtered = filtered.filter(l => l.city.toLowerCase().includes(filters.city.toLowerCase()))
+    }
+    if (filters.country) {
+        filtered = filtered.filter(l => l.country.toLowerCase().includes(filters.country.toLowerCase()))
+    }
+    if (filters.minRating != null) {
+        filtered = filtered.filter(l => l.rating >= filters.minRating)
+    }
+    if (filters.priceLevel?.length) {
+        filtered = filtered.filter(l => filters.priceLevel.includes(l.priceLevel))
+    }
+    return {
+        data: filtered,
+        total: filtered.length,
+        hasMore: false,
+    }
 }
 
-function _mockGetById(id) {
-    const loc = MOCK_LOCATIONS.find(l => l.id === id)
-    if (!loc) throw new ApiError(`Location "${id}" not found`, 404, 'LOCATION_NOT_FOUND')
-    return Promise.resolve(loc)
+function _mockGetLocation(id) {
+    return MOCK_LOCATIONS.find(l => l.id === id) || null
 }
 
 function _mockCreate(data) {
-    const loc = { ...data, id: crypto.randomUUID(), rating: 0, createdAt: new Date().toISOString() }
-    MOCK_LOCATIONS.push(loc)
-    return Promise.resolve(loc)
+    const newLocation = {
+        ...data,
+        id: `mock_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    }
+    MOCK_LOCATIONS.push(newLocation)
+    return newLocation
 }
 
 function _mockUpdate(id, updates) {
-    const idx = MOCK_LOCATIONS.findIndex(l => l.id === id)
-    if (idx === -1) throw new ApiError(`Location "${id}" not found`, 404, 'LOCATION_NOT_FOUND')
-    MOCK_LOCATIONS[idx] = { ...MOCK_LOCATIONS[idx], ...updates }
-    return Promise.resolve(MOCK_LOCATIONS[idx])
+    const index = MOCK_LOCATIONS.findIndex(l => l.id === id)
+    if (index === -1) return null
+    MOCK_LOCATIONS[index] = { ...MOCK_LOCATIONS[index], ...updates, updatedAt: new Date().toISOString() }
+    return MOCK_LOCATIONS[index]
 }
 
 function _mockDelete(id) {
-    const idx = MOCK_LOCATIONS.findIndex(l => l.id === id)
-    if (idx === -1) throw new ApiError(`Location "${id}" not found`, 404, 'LOCATION_NOT_FOUND')
-    MOCK_LOCATIONS.splice(idx, 1)
-    return Promise.resolve()
+    const index = MOCK_LOCATIONS.findIndex(l => l.id === id)
+    if (index !== -1) MOCK_LOCATIONS.splice(index, 1)
+}
+
+export default {
+    getLocations,
+    getLocation,
+    getLocationTranslated,
+    createLocation,
+    updateLocation,
+    deleteLocation,
 }

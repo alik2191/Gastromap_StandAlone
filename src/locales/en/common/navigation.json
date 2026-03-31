@@ -1,0 +1,12 @@
+{
+    "nav": {
+        "overview": "Overview",
+        "explore": "Explore",
+        "ai_guide": "GastroGuide",
+        "saved": "Saved",
+        "visited": "Visited",
+        "settings": "Settings",
+        "profile": "Profile",
+        "logout": "Logout"
+    }
+}

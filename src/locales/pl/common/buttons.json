@@ -1,0 +1,19 @@
+{
+    "buttons": {
+        "save": "Zapisz",
+        "cancel": "Anuluj",
+        "delete": "Usuń",
+        "edit": "Edytuj",
+        "add": "Dodaj",
+        "confirm": "Potwierdź",
+        "back": "Wróć",
+        "next": "Dalej",
+        "submit": "Wyślij",
+        "close": "Zamknij",
+        "search": "Szukaj",
+        "filter": "Filtr",
+        "sort": "Sortuj",
+        "clear": "Wyczyść",
+        "apply": "Zastosuj"
+    }
+}

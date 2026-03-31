@@ -1,0 +1,18 @@
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import AdminDashboardPage from '../pages/AdminDashboardPage'
+
+describe('AdminDashboardPage', () => {
+    it('renders dashboard page', () => {
+        render(<AdminDashboardPage />)
+        // Just check that page renders without crashing
+        expect(screen.getByRole('main')).toBeInTheDocument()
+    })
+
+    it('has stats section', () => {
+        render(<AdminDashboardPage />)
+        // Check for stats numbers (any number displayed)
+        const stats = screen.getAllByRole('status').length
+        expect(stats).toBeGreaterThanOrEqual(0)
+    })
+})

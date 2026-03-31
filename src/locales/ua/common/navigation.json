@@ -1,0 +1,12 @@
+{
+    "nav": {
+        "overview": "Огляд",
+        "explore": "Досліджувати",
+        "ai_guide": "GastroGuide",
+        "saved": "Збережені",
+        "visited": "Відвідані",
+        "settings": "Налаштування",
+        "profile": "Профіль",
+        "logout": "Вийти"
+    }
+}

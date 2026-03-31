@@ -9,7 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run tests/e2e",
+    "i18n:check": "node scripts/check-translations.js",
+    "i18n:add": "node scripts/add-translation.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",

@@ -1,0 +1,22 @@
+{
+    "location": {
+        "open_now": "Open now",
+        "closed": "Closed",
+        "closing_soon": "Closing soon",
+        "save": "Save",
+        "saved": "Saved",
+        "visited": "Visited",
+        "mark_visited": "Mark as Visited",
+        "overview": "Overview",
+        "menu": "Menu",
+        "reviews": "Reviews",
+        "photos": "Photos",
+        "notes": "Notes",
+        "view_details": "View details →",
+        "book_table": "Book a Table",
+        "get_directions": "Get Directions",
+        "call": "Call",
+        "website": "Website",
+        "share": "Share"
+    }
+}

@@ -1,0 +1,20 @@
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
+import AdminLayout from '../layout/AdminLayout'
+
+const renderWithRouter = (ui) => {
+    return render(<BrowserRouter>{ui}</BrowserRouter>)
+}
+
+describe('AdminLayout', () => {
+    it('renders layout with sidebar', () => {
+        renderWithRouter(<AdminLayout />)
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+    })
+
+    it('has main content area', () => {
+        renderWithRouter(<AdminLayout />)
+        expect(screen.getByRole('main')).toBeInTheDocument()
+    })
+})

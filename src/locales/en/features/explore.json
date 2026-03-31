@@ -1,0 +1,18 @@
+{
+    "explore": {
+        "discover": "Discover",
+        "places_found": "{{count}} places found",
+        "search_in": "Find in {{city}}…",
+        "no_results": "No results",
+        "no_results_for": "No results for \"{{query}}\"",
+        "clear_filters": "Clear filters",
+        "sort": {
+            "title": "Sort by",
+            "top_rated": "Top Rated",
+            "price_asc": "Price: Low to High",
+            "price_desc": "Price: High to Low",
+            "a_to_z": "Name: A to Z",
+            "z_to_a": "Name: Z to A"
+        }
+    }
+}

@@ -1,0 +1,17 @@
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import AdminAIPage from '../pages/AdminAIPage'
+
+describe('AdminAIPage', () => {
+    it('renders AI page', () => {
+        render(<AdminAIPage />)
+        expect(screen.getByRole('main')).toBeInTheDocument()
+    })
+
+    it('has AI agent cards', () => {
+        render(<AdminAIPage />)
+        // Check for cards (articles or sections)
+        const cards = document.querySelectorAll('[role="article"], .card')
+        expect(cards.length).toBeGreaterThanOrEqual(1)
+    })
+})
