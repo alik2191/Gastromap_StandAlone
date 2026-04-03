@@ -31,13 +31,8 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY
-
-    // Debug: log key presence and length (never log the actual key)
-    const keyStatus = apiKey ? `present (length: ${apiKey.length}, startsWith: ${apiKey.substring(0, 10)}...)` : 'MISSING'
-    console.log(`[ai/chat] OPENROUTER_API_KEY status: ${keyStatus}`)
-
     if (!apiKey || apiKey.trim() === '') {
-        return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured on server', debug: `key length: ${apiKey ? apiKey.length : 0}` })
+        return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured on server' })
     }
 
     try {
