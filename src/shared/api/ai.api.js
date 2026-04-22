@@ -131,6 +131,83 @@ const TOOLS = [
 
 // ─── Client-side tool executor ────────────────────────────────────────────
 
+// ── Hybrid scoring for AI tool search ──────────────────────────────────────
+//
+// Fields and weights used when model passes keyword= or any filter.
+// Scoring logic mirrors useLocationsStore so both search surfaces are consistent.
+//
+//   title          × 10  — most specific match
+//   tags           × 6   — curated tags
+//   cuisine        × 5   — explicit cuisine
+//   ai_keywords    × 5   — hidden semantic tags from AI enrichment
+//   what_to_try    × 4   — dish names
+//   vibe           × 4   — atmosphere
+//   dietary        × 4   — dietary restrictions
+//   best_for       × 3   — occasions
+//   features       × 3   — amenities
+//   insider_tip    × 2   — expert tips
+//   description    × 2   — general text
+//   ai_context     × 1   — long AI note (broadest, most noisy)
+
+const AI_SEARCH_FIELDS = [
+    { key: 'title',       weight: 10, type: 'string'  },
+    { key: 'tags',        weight: 6,  type: 'array'   },
+    { key: 'cuisine',     weight: 5,  type: 'string'  },
+    { key: 'ai_keywords', weight: 5,  type: 'array'   },
+    { key: 'what_to_try', weight: 4,  type: 'array'   },
+    { key: 'vibe',        weight: 4,  type: 'array'   },
+    { key: 'dietary',     weight: 4,  type: 'array'   },
+    { key: 'best_for',    weight: 3,  type: 'array'   },
+    { key: 'features',    weight: 3,  type: 'array'   },
+    { key: 'insider_tip', weight: 2,  type: 'string'  },
+    { key: 'description', weight: 2,  type: 'string'  },
+    { key: 'ai_context',  weight: 1,  type: 'string'  },
+]
+
+const AI_STOP_WORDS = new Set(['a', 'an', 'the', 'and', 'or', 'for', 'in', 'at', 'to', 'of', 'с', 'в', 'и', 'на', 'для', 'по'])
+
+function _scoreFieldToken(loc, token) {
+    let score = 0
+    for (const field of AI_SEARCH_FIELDS) {
+        const value = loc[field.key]
+        if (!value) continue
+        if (field.type === 'string') {
+            if (value.toLowerCase().includes(token)) {
+                const wordMatch = new RegExp(`\\b${token}\\b`).test(value.toLowerCase())
+                score += field.weight * (wordMatch ? 1.5 : 1)
+            }
+        } else if (field.type === 'array') {
+            const arr = Array.isArray(value) ? value : [value]
+            for (const item of arr) {
+                if (typeof item === 'string' && item.toLowerCase().includes(token)) {
+                    const wordMatch = new RegExp(`\\b${token}\\b`).test(item.toLowerCase())
+                    score += field.weight * (wordMatch ? 1.5 : 1)
+                    break
+                }
+            }
+        }
+    }
+    return score
+}
+
+function _computeScore(loc, tokens) {
+    let total = 0
+    for (const token of tokens) {
+        const s = _scoreFieldToken(loc, token)
+        if (s === 0) return 0   // AND logic: all tokens required
+        total += s
+    }
+    return total
+}
+
+function _tokeniseKeyword(keyword) {
+    return keyword
+        .toLowerCase()
+        .split(/[\s,;/]+/)
+        .map(t => t.replace(/[^a-z\u0400-\u04ff0-9]/g, ''))
+        .filter(t => t.length >= 2 && !AI_STOP_WORDS.has(t))
+}
+
 /**
  * Execute a tool call locally using the Zustand locations store.
  * This avoids any extra network request — data is already in memory.
@@ -150,6 +227,7 @@ function executeTool(name, args) {
 
         let results = [...locations]
 
+        // ── Hard filters (AND — eliminate non-matching) ───────────────────
         if (city) {
             const c = city.toLowerCase()
             results = results.filter(l =>
@@ -206,20 +284,33 @@ function executeTool(name, args) {
         if (michelin) {
             results = results.filter(l => l.michelin_stars > 0 || l.michelin_bib)
         }
-        if (keyword) {
-            const kw = keyword.toLowerCase()
-            results = results.filter(l =>
-                l.title?.toLowerCase().includes(kw) ||
-                l.description?.toLowerCase().includes(kw) ||
-                l.tags?.some(t => t.toLowerCase().includes(kw)) ||
-                l.ai_keywords?.some(k => k.toLowerCase().includes(kw)) ||
-                l.ai_context?.toLowerCase().includes(kw) ||
-                l.insider_tip?.toLowerCase().includes(kw) ||
-                l.what_to_try?.some(w => w.toLowerCase().includes(kw))
-            )
+
+        // ── Hybrid keyword search with relevance scoring ──────────────────
+        // If keyword provided: score all remaining candidates, filter zero-score,
+        // sort by descending relevance (with rating as tiebreaker).
+        // If no keyword: sort by rating descending (original behaviour).
+        if (keyword?.trim()) {
+            const tokens = _tokeniseKeyword(keyword)
+            if (tokens.length > 0) {
+                const scored = results
+                    .map(l => ({ l, score: _computeScore(l, tokens) }))
+                    .filter(({ score }) => score > 0)
+
+                // Sort: primary = relevance score DESC, secondary = rating DESC
+                scored.sort((a, b) =>
+                    b.score !== a.score
+                        ? b.score - a.score
+                        : (b.l.rating ?? 0) - (a.l.rating ?? 0)
+                )
+                results = scored.map(({ l }) => l)
+            } else {
+                // Degenerate keyword (all stop words) — just sort by rating
+                results.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+            }
+        } else {
+            results.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
         }
 
-        results.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
         results = results.slice(0, limit)
 
         return results.map(l => ({
